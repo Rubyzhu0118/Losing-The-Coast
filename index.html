@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Losing the Coast — A Data Investigation</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://api.fontshare.com"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=canela@400,700,900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════╗
+     HERO — Titlebg.jpg · cinematic entrance
+     ╚══════════════════════════════════════════╝ -->
+<section class="hero" id="hero">
+  <div class="hero-particles" id="hero-particles"></div>
+  <img src="Titlebg.jpg" class="hero-bg" alt=""/>
+  <div class="hero-ink"></div>
+  <div class="hero-content">
+    <h1 class="hero-title">
+      <span class="ht-line" id="hl1">Losing</span>
+      <span class="ht-line" id="hl2">the</span>
+      <span class="ht-line" id="hl3">Coast</span>
+    </h1>
+    <div class="hero-divider" id="hdiv"></div>
+    <p class="hero-sub" id="hs">As seas rise and shorelines retreat,<br>risk is moving inland — but not everyone can move with it.</p>
+  </div>
+  <div class="hero-scroll-line"></div>
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     S1 — SEA LEVEL · sticky chart left
+     ╚══════════════════════════════════════════╝ -->
+<section id="s1" class="section">
+  <div class="two-col">
+
+    <div class="col-chart">
+      <div class="sticky-panel" id="sp1">
+        <div class="chart-header">
+          <div class="chart-eyebrow">01 &nbsp;—&nbsp; The Coastline Is Changing</div>
+          <h3 class="chart-title">Global Mean Sea Level Rise</h3>
+          <p class="chart-sub">1880 – 2050 &nbsp;·&nbsp; millimeters above 1900 baseline</p>
+        </div>
+        <div id="chart-sea-level" class="chart-host"></div>
+        <p class="chart-src">Source: NOAA Sea Level Trends · Church &amp; White (2011) · CSIRO satellite altimetry</p>
+      </div>
+    </div>
+
+    <div class="col-narr">
+      <div class="step" data-step="1-0">
+        <h2 class="narr-h">The coast is not where it used to be.</h2>
+        <p>Sea level rise is not a future threat. It is a present, measurable transformation playing out across every ocean, at every shore. The chart is not a projection — it is a century of recorded data from hundreds of NOAA tide gauges worldwide.</p>
+      </div>
+      <div class="step" data-step="1-1">
+        <p>Since the late 19th century, global mean sea level has risen roughly <strong>21 to 24 centimeters</strong>. On a flat coastline like the Gulf of Mexico, every centimeter of vertical rise translates to a meter or more of horizontal land loss.</p>
+      </div>
+      <div class="step" data-step="1-2">
+        <p>The <strong>rate is accelerating</strong>. Since 1993, when satellite measurement began, the pace is more than three times faster than through most of the 20th century. Thermal expansion, melting glaciers, and destabilizing ice sheets are all compounding simultaneously.</p>
+        <blockquote class="pullq">The dashed red line is not a warning. It is the present trajectory.</blockquote>
+      </div>
+      <div class="step" data-step="1-3">
+        <p>Under intermediate projections, U.S. sea levels could rise another <strong>30–60 cm by 2050</strong> — within the lifetime of most people alive today. Under high-end scenarios, the number doubles.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     PHOTO DIVIDER · Seaside.jpg
+     ╚══════════════════════════════════════════╝ -->
+<div class="photo-divider">
+  <img src="Seaside.jpg" class="photo-divider-img" alt="Coastal cliffs"/>
+  <div class="photo-divider-ink"></div>
+  <div class="photo-divider-text">
+    <p class="photo-quote">"The shoreline is not a place. It is a moment in time."</p>
+  </div>
+  <p class="photo-cap">California coastline / Illustrative</p>
+</div>
+
+<!-- ╔══════════════════════════════════════════╗
+     S2 — SHORELINE RETREAT · text left, chart right
+     ╚══════════════════════════════════════════╝ -->
+<section id="s2" class="section">
+  <div class="two-col two-col-rev">
+
+    <div class="col-narr col-narr-l">
+      <div class="sec-label">02 — The Shoreline Is Moving Inland</div>
+      <div class="step" data-step="2-0">
+        <h2 class="narr-h">Land itself is being redrawn.</h2>
+        <p>Rising seas do not simply wet the existing shore — they rewrite it. Erosion accelerates as waves reach higher and farther. Wetlands drown when water rises faster than plants can migrate. Beaches narrow, then vanish.</p>
+      </div>
+      <div class="step" data-step="2-1">
+        <p>Along Atlantic and Gulf coasts, barrier islands are losing <strong>1–3 meters per year</strong>. Louisiana alone has lost more than <strong>5,000 km²</strong> since the 1930s — an area larger than Delaware. Roads that connected towns now end at the water's edge.</p>
+      </div>
+      <div class="step" data-step="2-2">
+        <p>Sandy beaches become mudflats. Salt marshes become open bays. The transformation is slow enough to be invisible day to day, and fast enough to be catastrophic over a decade.</p>
+        <blockquote class="pullq">The border between sea and land is a moving, contested line — and it is moving in only one direction.</blockquote>
+      </div>
+    </div>
+
+    <div class="col-chart">
+      <div class="sticky-panel" id="sp2">
+        <div class="chart-header">
+          <h3 class="chart-title">Shoreline Retreat, 1930 – 2023</h3>
+          <p class="chart-sub">Composite U.S. Atlantic / Gulf coast · meters from 1930 baseline</p>
+        </div>
+        <div id="chart-shoreline" class="chart-host"></div>
+        <p class="chart-src">Source: NOAA / USGS Coastal Change · Louisiana CPRA</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     S3 — FLOODING · full-width
+     ╚══════════════════════════════════════════╝ -->
+<section id="s3" class="section section-fw">
+
+  <div class="fw-top">
+    <div class="sec-label">03 — Flooding Is Becoming More Frequent</div>
+    <h2 class="fw-title">Flooding no longer requires a storm.</h2>
+    <p class="fw-body">High-tide flooding — "sunny day flooding" — now routinely inundates coastal streets without any hurricane or heavy rain. The tide simply rises above the land. In Norfolk, Annapolis, and Miami Beach it is already a near-daily disruption months each year.</p>
+  </div>
+
+  <!-- Photo pair -->
+  <div class="photo-pair">
+    <figure class="pp-item">
+      <img src="Flood traffic.jpg" class="pp-img" alt="Flooded traffic"/>
+      <figcaption>Traffic infrastructure submerged during high-tide flooding event</figcaption>
+    </figure>
+    <figure class="pp-item">
+      <img src="Floodroad.jpg" class="pp-img" alt="Flooded road"/>
+      <figcaption>Coastal road inundated — no storm required, only a high tide</figcaption>
+    </figure>
+  </div>
+
+  <div class="fw-chart-wrap">
+    <div class="chart-header chart-header-center">
+      <h3 class="chart-title">Average Annual High-Tide Flood Days</h3>
+      <p class="chart-sub">U.S. coastal monitoring stations · 1960 – 2023 · Click bars to explore</p>
+    </div>
+    <div id="chart-flooding" class="chart-host chart-host-tall"></div>
+    <p class="chart-src chart-src-c">Source: NOAA High Tide Flooding Annual Report, 2023</p>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-item" data-delay="0">
+      <span class="stat-n">20+</span>
+      <span class="stat-rule"></span>
+      <span class="stat-l">Flood days per year at many stations in 2023, up from 2–3 in 1970</span>
+    </div>
+    <div class="stat-item" data-delay="120">
+      <span class="stat-n">100+</span>
+      <span class="stat-rule"></span>
+      <span class="stat-l">Projected annual flood days at some coastal locations by mid-century</span>
+    </div>
+    <div class="stat-item" data-delay="240">
+      <span class="stat-n">10×</span>
+      <span class="stat-rule"></span>
+      <span class="stat-l">Increase in sunny-day flooding frequency between 1960 and today</span>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     S4 — HAZARDS · dark photo background
+     ╚══════════════════════════════════════════╝ -->
+<section id="s4" class="section section-hazards">
+  <div class="hz-bg">
+    <img src="hurricane.jpg" class="hz-bg-img" alt="Storm"/>
+    <div class="hz-bg-ink"></div>
+  </div>
+
+  <div class="hz-inner">
+    <div class="sec-label sec-label-light">04 — Water Is Reaching Further Inland</div>
+    <h2 class="fw-title fw-title-light">The same hazards now travel farther than before.</h2>
+    <p class="fw-body fw-body-light">A higher sea-level baseline acts as a launch ramp for every coastal hazard. Storm surge pushes deeper. Floodwaters sit longer. Erosion accelerates. Familiar dangers reach communities that once felt safe.</p>
+
+    <div class="hz-grid">
+      <div class="hz-card" data-delay="0">
+        <div class="hz-viz-img" onclick="openLightbox('Storm.png','Storm Surge')">
+          <img src="Storm.png" alt="Storm surge diagram" class="hz-img"/>
+          <div class="hz-img-hint">Click to enlarge</div>
+        </div>
+        <h4 class="hz-h">Storm Surge</h4>
+        <p class="hz-p">Higher baseline means surge reaches meters further inland. Each centimeter of sea level rise translates to additional horizontal inundation on flat coastal terrain — turning a minor event into a major flood.</p>
+      </div>
+      <div class="hz-card" data-delay="100">
+        <div class="hz-viz-img" onclick="openLightbox('Compound.png','Compound Flooding')">
+          <img src="Compound.png" alt="Compound flooding diagram" class="hz-img"/>
+          <div class="hz-img-hint">Click to enlarge</div>
+        </div>
+        <h4 class="hz-h">Compound Flooding</h4>
+        <p class="hz-p">When surge, heavy rain, and high tide coincide, the combined impact vastly exceeds any single driver. As sea levels rise, the overlap window grows — making compound events far more probable and severe.</p>
+      </div>
+      <div class="hz-card" data-delay="200">
+        <div class="hz-viz-img" onclick="openLightbox('Erosion.png','Coastal Erosion')">
+          <img src="Erosion.png" alt="Coastal erosion diagram" class="hz-img"/>
+          <div class="hz-img-hint">Click to enlarge</div>
+        </div>
+        <h4 class="hz-h">Coastal Erosion</h4>
+        <p class="hz-p">Wave energy increases with higher sea levels, accelerating breakdown of bluffs and beaches. Sediment replenishment no longer keeps pace. Barrier islands that once protected inland communities are being consumed.</p>
+      </div>
+      <div class="hz-card" data-delay="300">
+        <div class="hz-viz-img" onclick="openLightbox('Saltwater.png','Saltwater Intrusion')">
+          <img src="Saltwater.png" alt="Saltwater intrusion diagram" class="hz-img"/>
+          <div class="hz-img-hint">Click to enlarge</div>
+        </div>
+        <h4 class="hz-h">Saltwater Intrusion</h4>
+        <p class="hz-p">Rising seas push saline water into freshwater aquifers and rivers. Drinking water sources are contaminated. Agricultural soils become too saline to farm. Damage progresses invisibly until it is irreversible.</p>
+      </div>
+    </div>
+
+    <p class="hz-src">Source: NOAA Storm Events Database · FEMA National Risk Index · EM-DAT International Disaster Database</p>
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     S5 — POPULATION · chart left, text right
+     ╚══════════════════════════════════════════╝ -->
+<section id="s5" class="section">
+  <div class="two-col">
+
+    <div class="col-chart">
+      <figure class="col-photo-strip">
+        <img src="Rain.jpg" class="col-photo-img" alt="Coastal urban density"/>
+        <figcaption>High-density coastal development, U.S. Gulf Coast / Illustrative</figcaption>
+      </figure>
+      <div class="sticky-panel" id="sp5">
+        <div class="chart-header">
+          <div class="chart-eyebrow">05 — More People Are Living in Harm's Way</div>
+          <h3 class="chart-title">Coastal Metro Areas: Risk vs. Output</h3>
+          <p class="chart-sub">Flood risk score vs. economic output · Bubble size = population · Hover to explore</p>
+        </div>
+        <div id="chart-population" class="chart-host"></div>
+        <p class="chart-src">Source: U.S. Census · BEA County GDP · FEMA NRI, 2023</p>
+      </div>
+    </div>
+
+    <div class="col-narr">
+      <div class="step" data-step="5-0">
+        <h2 class="narr-h">The coast is dense, wealthy, and in danger.</h2>
+        <p>Coastal counties hold just 10% of U.S. land, yet contain <strong>more than 40% of the population</strong> and generate a disproportionate share of national economic output. These are not empty beaches — they are the most inhabited, highest-value parts of the country.</p>
+      </div>
+      <div class="step" data-step="5-1">
+        <p>The 15 largest coastal metros — from Miami to New York, Houston to Los Angeles — account for trillions in annual GDP. The infrastructure of American prosperity: ports, airports, hospitals, highways, neighborhoods — much of it sits within reach of the rising sea.</p>
+        <p>The chart shows it starkly: <strong>Miami, New Orleans, and Norfolk</strong> combine maximum flood risk with massive populations and economic output. There is no retreat option at this scale.</p>
+      </div>
+      <div class="step" data-step="5-2">
+        <p>Despite rising awareness, population in high-flood-risk coastal areas has grown <strong>faster than the national average</strong> for two decades. People continue moving toward risk, drawn by climate, amenity, and economy.</p>
+        <blockquote class="pullq">The coast keeps growing — even as the evidence of its danger becomes impossible to ignore.</blockquote>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     S6 — INEQUALITY · full dark · centerpiece
+     ╚══════════════════════════════════════════╝ -->
+<section id="s6" class="section section-ineq">
+
+  <div class="ineq-header">
+    <div class="sec-label sec-label-light">06 — Not Everyone Can Move Away from Risk</div>
+    <h2 class="ineq-title">Exposure is shared.<br><em>Escape is not.</em></h2>
+    <p class="ineq-intro">The most important variable in coastal risk is not how close you live to water. It is whether you have the means to respond when the water arrives. That capacity is structured by income, housing, age, language, and mobility — and it is profoundly unequal.</p>
+  </div>
+
+  <!-- Broken house photo — full width -->
+  <div class="ineq-photo">
+    <img src="Broken house.jpg" class="ineq-photo-img" alt="Hurricane aftermath"/>
+    <div class="ineq-photo-ink"></div>
+    <div class="ineq-photo-text">
+      <p class="ineq-photo-q">This is what the storm leaves behind. Not equally for everyone.</p>
+    </div>
+    <p class="photo-cap photo-cap-light">Hurricane aftermath, New Orleans / Library of Congress</p>
+  </div>
+
+  <div class="ineq-layout">
+
+    <div class="ineq-chart-col">
+      <div class="sticky-panel sticky-panel-dark" id="sp6">
+        <div class="chart-header">
+          <h3 class="chart-title chart-title-light">Flood Risk vs. Social Vulnerability</h3>
+          <p class="chart-sub chart-sub-light">Each dot = one U.S. coastal county · Upper-right = most exposed, least able to recover · Click to explore</p>
+        </div>
+        <div id="chart-inequality" class="chart-host"></div>
+        <div id="ineq-legend" class="ineq-legend"></div>
+        <p class="chart-src chart-src-light">Source: FEMA NRI (2023) · CDC SVI (2022) · U.S. Census ACS 2021</p>
+      </div>
+    </div>
+
+    <div class="ineq-narr">
+      <div class="step step-light" data-step="6-0">
+        <p class="ineq-lead">Each dot represents one U.S. coastal county. <strong>Horizontal axis</strong>: flood risk score from FEMA's National Risk Index. <strong>Vertical axis</strong>: social vulnerability from the CDC's SVI — a composite of poverty, housing instability, limited English, disability, and minority status.</p>
+      </div>
+      <div class="step step-light" data-step="6-1">
+        <p>A high SVI county already faces compounding daily barriers. When those barriers collide with frequent flooding, the results are catastrophic — and the recovery is measured in years, not weeks.</p>
+      </div>
+      <div class="step step-light" data-step="6-2">
+        <div class="ineq-callout">
+          <p class="ineq-callout-label">Upper-right quadrant</p>
+          <p><strong>High risk. High vulnerability.</strong> These communities flood often and have the fewest resources to prepare, evacuate, or rebuild. For them, climate change is not a future problem.</p>
+        </div>
+      </div>
+      <div class="step step-light" data-step="6-3">
+        <p>The Gulf Coast. The Mississippi Delta. South Florida. Coastal Virginia. <strong>Highest physical risk overlaps almost exactly with lowest adaptive capacity.</strong> This is not coincidence — it reflects decades of inequitable development and systemic underinvestment.</p>
+      </div>
+      <div class="step step-light" data-step="6-4">
+        <p>Renters cannot retrofit. Low-income households cannot relocate. The elderly cannot navigate complex FEMA applications. When managed retreat is proposed, those most in need are last to receive help.</p>
+        <blockquote class="pullq pullq-light">The flood does not choose. The safety net does.</blockquote>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Social Vulnerability photo + economic immobility narrative -->
+  <div class="sv-photo-block">
+    <div class="sv-photo-wrap">
+      <img src="Social vulnerability.jpg" class="sv-photo-img" alt="Residents wading through flooded streets"/>
+      <p class="photo-cap photo-cap-light">Residents navigate flooded streets — a daily reality for many vulnerable coastal communities</p>
+    </div>
+    <div class="sv-text-block">
+      <h3 class="sv-heading">The economic reality of immobility</h3>
+      <p>Moving away from a flood-prone area costs money that most coastal residents in vulnerable communities simply do not have. A median home relocation in the United States costs between $80,000 and $150,000 — factoring in selling costs, moving expenses, and purchasing in a safer market where prices are invariably higher.</p>
+      <p>For the <strong>nearly 40% of coastal flood-zone residents who rent</strong>, the calculus is even starker. Renters have no equity to draw on, no federally subsidized buyout to access, and no control over whether their landlord rebuilds or abandons the property after flooding. They are, in many cases, the last to leave and the last to return.</p>
+      <p>Federal managed-retreat programs — primarily FEMA's Hazard Mitigation Grant Program — have historically served wealthier, whiter communities at significantly higher rates. Research has consistently found that buyouts are more likely in counties with higher incomes and lower minority populations, even after controlling for flood exposure. <strong>The communities facing the greatest risk are often the least served by the programs designed to protect them.</strong></p>
+      <blockquote class="pullq pullq-light">When the water rises, those with means leave. Those without means wait for help that may never arrive at adequate scale.</blockquote>
+    </div>
+  </div>
+
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     PHOTO DIVIDER · bg.jpg · wetlands
+     ╚══════════════════════════════════════════╝ -->
+<div class="photo-divider">
+  <img src="bg.jpg" class="photo-divider-img" alt="Wetlands"/>
+  <div class="photo-divider-ink"></div>
+  <p class="photo-cap">Coastal wetland marsh — a disappearing natural buffer / Illustrative</p>
+</div>
+
+<!-- ╔══════════════════════════════════════════╗
+     S7 — WETLANDS · chart left, text right
+     ╚══════════════════════════════════════════╝ -->
+<section id="s7" class="section">
+  <div class="two-col">
+
+    <div class="col-chart">
+      <div class="sticky-panel" id="sp7">
+        <div class="chart-header">
+          <div class="chart-eyebrow">07 — Natural Defenses Are Disappearing</div>
+          <h3 class="chart-title">U.S. Wetland Area, 1780 – 2023</h3>
+          <p class="chart-sub">Millions of acres · A century of loss, a fragile partial recovery</p>
+        </div>
+        <div id="chart-wetlands" class="chart-host"></div>
+        <p class="chart-src">Source: USFWS NWI · Dahl (1990, 2011) · Louisiana CPRA</p>
+      </div>
+    </div>
+
+    <div class="col-narr">
+      <div class="step" data-step="7-0">
+        <h2 class="narr-h">The coast is losing not just land — but protection.</h2>
+        <p>Between the ocean and the inhabited shore, a living buffer once stood: wetlands, marshes, mangrove forests, barrier dunes. These systems absorbed storm energy, held sediment, and gave coastal communities an invisible margin of safety. Over the past century, it has been systematically destroyed.</p>
+      </div>
+      <div class="step" data-step="7-1">
+        <p>The U.S. has lost more than <strong>50% of its original coastal wetlands</strong>. Louisiana continues losing wetlands at roughly <strong>one football field every 100 minutes</strong> — driven by drainage, development, and now accelerating sea level rise.</p>
+        <p>A healthy marsh reduces incoming wave heights by 50–70%. When these systems disappear, storm surge meets homes and streets without interruption. Harvey, Katrina, and Sandy all inflicted amplified damage in areas where natural buffers had been removed.</p>
+      </div>
+      <div class="step" data-step="7-2">
+        <p>Rising seas now add <strong>coastal squeeze</strong> — wetlands need to migrate landward as water rises, but development blocks that migration. Pressed between the advancing ocean and fixed infrastructure, the buffer drowns from both sides simultaneously.</p>
+        <blockquote class="pullq">The ocean advances in front. Development blocks retreat from behind. The buffer disappears.</blockquote>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════╗
+     S8 — CONCLUSION + RANKING
+     ╚══════════════════════════════════════════╝ -->
+<section id="s8" class="section section-conclusion">
+
+  <div class="concl-split">
+    <div class="concl-photo">
+      <img src="Titlebg.jpg" class="concl-photo-img" alt=""/>
+      <div class="concl-photo-fade"></div>
+    </div>
+    <div class="concl-text">
+      <div class="sec-label">08 — The Risk Is Not Shared Equally</div>
+      <h2 class="concl-h">The water does not discriminate.<br><em>The system does.</em></h2>
+      <p>Coastal retreat is inevitable in many places. The question is not whether change is coming. The question is who will bear its cost. The evidence is consistent, county by county: the communities with the fewest resources are being asked to absorb the greatest burden.</p>
+      <p>Sea level rise is a physical fact. The damage it causes is shaped by policy — about where to build, who gets flood insurance, where buyout programs operate, and which communities receive early warning systems.</p>
+    </div>
+  </div>
+
+  <div class="ranking-wrap">
+    <div class="chart-header chart-header-center">
+      <h3 class="chart-title">Composite Coastal Risk Index — Selected U.S. Regions</h3>
+      <p class="chart-sub">Combining flood frequency, storm surge exposure, erosion risk, and social vulnerability · Hover for detail</p>
+    </div>
+    <div id="chart-ranking" class="chart-host chart-host-ranking"></div>
+    <p class="chart-src chart-src-c">Source: FEMA NRI · NOAA Sea Level Rise Viewer · CDC SVI · U.S. Census</p>
+  </div>
+
+  <div class="coda-row">
+    <div class="coda-cell" data-delay="0">
+      <span class="coda-n">~40M</span>
+      <span class="coda-l">Americans in high flood-risk coastal zones</span>
+    </div>
+    <div class="coda-cell" data-delay="110">
+      <span class="coda-n">$1T+</span>
+      <span class="coda-l">Coastal property at elevated risk by 2050</span>
+    </div>
+    <div class="coda-cell" data-delay="220">
+      <span class="coda-n">3×</span>
+      <span class="coda-l">Faster sea-level rise since satellite era began 1993</span>
+    </div>
+    <div class="coda-cell" data-delay="330">
+      <span class="coda-n">50%</span>
+      <span class="coda-l">Of original U.S. coastal wetlands permanently lost</span>
+    </div>
+  </div>
+
+  <div class="sources">
+    <h4 class="sources-h">Data Sources</h4>
+    <div class="sources-grid">
+      <div><a href="https://tidesandcurrents.noaa.gov/sltrends/sltrends.html" target="_blank" rel="noopener" class="src-link"><strong>NOAA Sea Level Trends</strong></a><br>Tide gauge records and long-term relative sea level trends, 1880–2023</div>
+      <div><a href="https://oceanservice.noaa.gov/hazards/sealevelrise/sealevelrise-tech-report.html" target="_blank" rel="noopener" class="src-link"><strong>U.S. Sea Level Rise Technical Report (2022)</strong></a><br>Federal interagency sea level projections under five scenarios through 2150</div>
+      <div><a href="https://hazards.fema.gov/nri/" target="_blank" rel="noopener" class="src-link"><strong>FEMA National Risk Index</strong></a><br>County-level composite natural hazard risk scores, updated 2023</div>
+      <div><a href="https://oceanservice.noaa.gov/hazards/sealevelrise/sealevelrise-tech-report.html" target="_blank" rel="noopener" class="src-link"><strong>NOAA High Tide Flooding Annual Report</strong></a><br>Annual high-tide flood day counts at U.S. coastal stations, 1960–2023</div>
+      <div><a href="https://www.census.gov/programs-surveys/acs/data.html" target="_blank" rel="noopener" class="src-link"><strong>U.S. Census Bureau — American Community Survey</strong></a><br>Population, housing tenure, and vehicle access — 2021 5-year estimates</div>
+      <div><a href="https://coast.noaa.gov/states/fast-facts/economics-and-demographics.html" target="_blank" rel="noopener" class="src-link"><strong>NOAA Coastal Economics &amp; Demographics</strong></a><br>Population and economic output in U.S. coastal counties</div>
+      <div><a href="https://www.ncei.noaa.gov/access/billions/" target="_blank" rel="noopener" class="src-link"><strong>NOAA Billion-Dollar Weather &amp; Climate Disasters</strong></a><br>Database of U.S. weather events causing over $1B in losses since 1980</div>
+      <div><a href="https://www.bea.gov/data/gdp/gdp-county-metro-and-other-areas" target="_blank" rel="noopener" class="src-link"><strong>Bureau of Economic Analysis — County GDP</strong></a><br>Annual GDP estimates for U.S. counties and metropolitan areas, 2022</div>
+      <div><a href="https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html" target="_blank" rel="noopener" class="src-link"><strong>CDC Social Vulnerability Index</strong></a><br>15-indicator county-level social vulnerability composite, 2022</div>
+      <div><a href="https://coast.noaa.gov/slr/" target="_blank" rel="noopener" class="src-link"><strong>NOAA Sea Level Rise Viewer</strong></a><br>Interactive inundation mapping under intermediate and high scenarios</div>
+      <div><a href="https://data.census.gov/table/ACSDT5Y2021.B25070" target="_blank" rel="noopener" class="src-link"><strong>U.S. Census — Gross Rent as % of Income</strong></a><br>Housing cost burden and rent-to-income ratio by county, ACS 2021</div>
+      <div><a href="https://public.emdat.be/" target="_blank" rel="noopener" class="src-link"><strong>EM-DAT International Disaster Database</strong></a><br>Global natural disaster events, economic losses, and mortality since 1900</div>
+    </div>
+    <p class="sources-note">Photography used for illustrative purposes only. All links verified April 2025.</p>
+  </div>
+
+</section>
+
+<div id="tooltip" class="tooltip"></div>
+
+<!-- Lightbox overlay for hazard charts -->
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+  <div class="lightbox-inner" onclick="event.stopPropagation()">
+    <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">&times;</button>
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+    <img id="lightbox-img" class="lightbox-img" src="" alt=""/>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
