@@ -670,20 +670,34 @@ function buildPopulation() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   S6 — INEQUALITY SCATTER (full dark, solid text)
-   M: t=22 r=36 b=88 l=104
+   S6 — INEQUALITY SCATTER
+   • No static overlapping labels
+   • 6 key cities: leader-line callouts with collision-aware offsets
+   • Hover: hovered dot bright, all others dim to 0.12
+   • Quadrant labels: corners only, never near data
+   M: t=22 r=40 b=88 l=104
 ══════════════════════════════════════════════════════════ */
 function buildInequality() {
   const el = document.getElementById('chart-inequality');
   if (!el) return;
 
   const counties = countyData();
-  const M = { t: 22, r: 36, b: 88, l: 104 };
+  const M = { t: 22, r: 40, b: 88, l: 104 };
+
+  // Key cities to always label — with pre-computed label offsets (dx, dy from dot edge)
+  const CALLOUTS = [
+    { name:'Orleans, LA',     dx: 12, dy: -6,   anchor:'start' },
+    { name:'Miami-Dade, FL',  dx: 12, dy: -6,   anchor:'start' },
+    { name:'Norfolk City, VA',dx: 12, dy: -6,   anchor:'start' },
+    { name:'Galveston, TX',   dx: 12, dy:  16,  anchor:'start' },
+    { name:'Lee, FL',         dx: 12, dy:  16,  anchor:'start' },
+    { name:'Terrebonne, LA',  dx:-14, dy: -10,  anchor:'end'   },
+  ];
 
   function draw() {
     el.innerHTML = '';
     const W = el.clientWidth  || 560;
-    const H = Math.min(el.clientHeight || 480, window.innerHeight * 0.64);
+    const H = Math.min(el.clientHeight || 500, window.innerHeight * 0.66);
     const w = W - M.l - M.r, h = H - M.t - M.b;
     if (w < 60 || h < 60) return;
 
@@ -695,45 +709,64 @@ function buildInequality() {
 
     const x = d3.scaleLinear().domain([0, 1]).range([0, w]);
     const y = d3.scaleLinear().domain([0, 1]).range([h, 0]);
+    const rScale = d => 4 + d.pop * 0.72;
 
-    // Quadrant backgrounds — subtle tint, clear labels
-    [
-      { qx:0.5, qy:0.5, qw:0.5, qh:0.5, fill:'#c0392b', lbl:['HIGH RISK','HIGH VULN.'] },
-      { qx:0,   qy:0.5, qw:0.5, qh:0.5, fill:'#2463c8', lbl:['LOW RISK', 'HIGH VULN.'] },
-      { qx:0.5, qy:0,   qw:0.5, qh:0.5, fill:'#d4900a', lbl:['HIGH RISK','LOW VULN.']  },
-      { qx:0,   qy:0,   qw:0.5, qh:0.5, fill:'#1a9980', lbl:['LOW RISK', 'LOW VULN.']  }
-    ].forEach(q => {
+    // ── Quadrant background fills ──────────────────────────
+    const qDef = [
+      { qx:0.5, qy:0.5, qw:0.5, qh:0.5, fill:'#c0392b' },
+      { qx:0,   qy:0.5, qw:0.5, qh:0.5, fill:'#2463c8' },
+      { qx:0.5, qy:0,   qw:0.5, qh:0.5, fill:'#d4900a' },
+      { qx:0,   qy:0,   qw:0.5, qh:0.5, fill:'#1a9980' }
+    ];
+    qDef.forEach(q => {
       g.append('rect')
-        .attr('x', x(q.qx)).attr('y', y(q.qy+q.qh))
-        .attr('width', w*q.qw).attr('height', h*q.qh)
+        .attr('x', x(q.qx)).attr('y', y(q.qy + q.qh))
+        .attr('width', w * q.qw).attr('height', h * q.qh)
         .attr('fill', q.fill).attr('opacity', 0.07);
-      // Quadrant corner labels — bottom-left of each quadrant for minimal interference
-      const lx = x(q.qx) + (q.qw < 0.6 ? 12 : w*q.qw - 12);
-      const ly = y(q.qy) - 12;
-      const anchor = q.qx === 0 ? 'start' : 'end';
-      q.lbl.forEach((ln, li) => {
+    });
+
+    // ── Quadrant labels — strict corners, never overlapping data ──
+    // Each label sits in its own corner with a colored pill background
+    const qLabels = [
+      { x: x(0.98), y: y(0.97), lines:['HIGH RISK', 'HIGH VULN.'], fill:'#c0392b', anchor:'end'   },
+      { x: x(0.02), y: y(0.97), lines:['LOW RISK',  'HIGH VULN.'], fill:'#2463c8', anchor:'start' },
+      { x: x(0.98), y: y(0.03), lines:['HIGH RISK', 'LOW VULN.' ], fill:'#d4900a', anchor:'end'   },
+      { x: x(0.02), y: y(0.03), lines:['LOW RISK',  'LOW VULN.' ], fill:'#1a9980', anchor:'start' },
+    ];
+
+    qLabels.forEach(q => {
+      // Pill background
+      const bw = 118, bh = 30, bpad = 6;
+      const bx = q.anchor === 'start' ? q.x - bpad : q.x - bw + bpad;
+      g.append('rect')
+        .attr('x', bx).attr('y', q.y - 20)
+        .attr('width', bw).attr('height', bh)
+        .attr('fill', q.fill).attr('opacity', 0.18)
+        .attr('rx', 3);
+      // Two-line text
+      q.lines.forEach((ln, li) => {
         g.append('text')
-          .attr('x', x(q.qx + (q.qx === 0 ? 0.02 : q.qw - 0.02)))
-          .attr('y', y(q.qy + (q.qy === 0 ? 0.02 : 0.02)) - li * 14)
-          .attr('text-anchor', anchor)
+          .attr('x', q.x).attr('y', q.y - 4 + li * 13)
+          .attr('text-anchor', q.anchor)
           .attr('fill', q.fill)
           .attr('font-family', 'DM Mono, monospace')
-          .attr('font-size', 11)
+          .attr('font-size', 10)
           .attr('letter-spacing', '0.1em')
-          .attr('opacity', 0.65)
+          .attr('opacity', 0.9)
           .text(ln);
       });
     });
 
-    // Midlines
+    // ── Midlines ───────────────────────────────────────────
     g.append('line').attr('x1',x(0.5)).attr('x2',x(0.5)).attr('y1',0).attr('y2',h)
-      .attr('stroke','rgba(255,255,255,0.18)').attr('stroke-width',0.7).attr('stroke-dasharray','4 3');
+      .attr('stroke','rgba(255,255,255,0.14)').attr('stroke-width',0.7).attr('stroke-dasharray','5 4');
     g.append('line').attr('x1',0).attr('x2',w).attr('y1',y(0.5)).attr('y2',y(0.5))
-      .attr('stroke','rgba(255,255,255,0.18)').attr('stroke-width',0.7).attr('stroke-dasharray','4 3');
+      .attr('stroke','rgba(255,255,255,0.14)').attr('stroke-width',0.7).attr('stroke-dasharray','5 4');
 
+    // ── Grid ──────────────────────────────────────────────
     hGrid(g, y, w, 5);
 
-    // Axes — SOLID text
+    // ── Axes ──────────────────────────────────────────────
     cleanAxis(g.append('g').attr('transform',`translate(0,${h})`).call(
       d3.axisBottom(x).ticks(5).tickFormat(d3.format('.1f'))
     ), { fill:C.white2, size:13, domain:'rgba(255,255,255,0.2)' }).selectAll('.tick text').attr('dy',18);
@@ -741,7 +774,6 @@ function buildInequality() {
     cleanAxis(g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.1f'))),
       { fill:C.white2, size:13, domain:'rgba(255,255,255,0.2)' }).selectAll('.tick text').attr('dx',-12);
 
-    // Axis labels — SOLID
     g.append('text').attr('x',w/2).attr('y',h+72).attr('text-anchor','middle')
       .attr('fill',C.white2).attr('font-family','DM Mono,monospace').attr('font-size',12).attr('letter-spacing','0.1em')
       .text('FLOOD RISK SCORE  (FEMA NRI)');
@@ -749,6 +781,7 @@ function buildInequality() {
       .attr('text-anchor','middle').attr('fill',C.white2).attr('font-family','DM Mono,monospace').attr('font-size',12).attr('letter-spacing','0.1em')
       .text('SOCIAL VULNERABILITY  (CDC SVI)');
 
+    // ── Colour map ────────────────────────────────────────
     const regCol = {
       'Gulf':        '#e05040',
       'SE Atlantic': '#d4900a',
@@ -757,38 +790,103 @@ function buildInequality() {
       'Great Lakes': '#8ab2ee'
     };
 
-    // Dots — animated in, fully interactive
+    // ── Dots ──────────────────────────────────────────────
     const dots = g.selectAll('.dot').data(counties).join('circle').attr('class','dot')
-      .attr('cx', d=>x(d.risk)).attr('cy', d=>y(d.vuln))
-      .attr('r',  d=>3.5+d.pop*0.72)
-      .attr('fill', d=>regCol[d.region]||C.dim)
+      .attr('cx', d => x(d.risk)).attr('cy', d => y(d.vuln))
+      .attr('r',  d => rScale(d))
+      .attr('fill', d => regCol[d.region] || C.dim)
       .attr('opacity', 0)
-      .attr('stroke','rgba(10,10,12,0.6)').attr('stroke-width',0.4)
+      .attr('stroke','rgba(10,10,12,0.6)').attr('stroke-width', 0.4)
       .style('cursor','pointer')
       .on('mouseover', function(ev, d) {
-        d3.select(this).attr('opacity',1).attr('stroke',C.white).attr('stroke-width',2);
+        // Dim all other dots
+        g.selectAll('.dot').attr('opacity', 0.1);
+        // Highlight this dot
+        d3.select(this)
+          .attr('opacity', 1)
+          .attr('stroke', C.white)
+          .attr('stroke-width', 2.5)
+          .raise();
+        // Highlight leader line if it exists
+        g.selectAll('.leader-line').attr('opacity', 0.08);
+        g.selectAll(`.leader-${CSS.escape(d.name)}`).attr('opacity', 0.8);
+        g.selectAll('.callout-label').attr('opacity', 0.15);
+        g.selectAll(`.label-${CSS.escape(d.name)}`).attr('opacity', 1);
+        // Tooltip
         tipShow(
           `<div class="tt-head">${d.name}</div>
            <div class="tt-row"><span>Region</span><span>${d.region}</span></div>
            <div class="tt-row"><span>Flood risk</span><span>${d.risk.toFixed(2)}</span></div>
            <div class="tt-row"><span>Social vuln.</span><span>${d.vuln.toFixed(2)}</span></div>
-           <div class="tt-row"><span>Population</span><span>${d.pop > 3 ? '>1M' : '<500k'}</span></div>`,
+           <div class="tt-row"><span>Population size</span><span>${d.pop > 6 ? 'Large (>1M)' : d.pop > 3 ? 'Medium' : 'Small'}</span></div>`,
           ev.clientX, ev.clientY
         );
       })
       .on('mousemove', tipMove)
       .on('mouseout', function() {
         tipHide();
-        d3.select(this).attr('opacity',0.74).attr('stroke','rgba(10,10,12,0.6)').attr('stroke-width',0.4);
+        // Restore all dots
+        g.selectAll('.dot').attr('opacity', 0.74).attr('stroke','rgba(10,10,12,0.6)').attr('stroke-width', 0.4);
+        g.selectAll('.leader-line').attr('opacity', 0.35);
+        g.selectAll('.callout-label').attr('opacity', 1);
       });
 
-    // County callout labels
-    counties.filter(d=>d.callout).forEach(d => {
-      g.append('text').attr('x',x(d.risk)+5+d.pop*0.72).attr('y',y(d.vuln)+4)
-        .attr('fill',C.white2).attr('font-family','DM Mono,monospace').attr('font-size',11).text(d.name);
+    // ── Callout labels with leader lines ──────────────────
+    // Only for the 6 most important cities — smart offsets, no overlap
+    CALLOUTS.forEach(cfg => {
+      const d = counties.find(c => c.name === cfg.name);
+      if (!d) return;
+      const cx = x(d.risk), cy = y(d.vuln);
+      const rad = rScale(d);
+
+      // Endpoint of leader line
+      const lx2 = cx + (cfg.dx > 0 ? rad + cfg.dx : cfg.dx - rad);
+      const ly2 = cy + cfg.dy;
+
+      // Short leader line from dot edge
+      const angle = Math.atan2(cfg.dy, cfg.dx);
+      const lx1 = cx + Math.cos(angle) * (rad + 2);
+      const ly1 = cy + Math.sin(angle) * (rad + 2);
+
+      g.append('line')
+        .attr('class', `leader-line leader-${d.name}`)
+        .attr('x1', lx1).attr('y1', ly1)
+        .attr('x2', lx2).attr('y2', ly2)
+        .attr('stroke', 'rgba(255,255,255,0.35)')
+        .attr('stroke-width', 0.8);
+
+      // Label pill background
+      const txt = d.name;
+      const charW = 6.5, pad = 8;
+      const lblW = txt.length * charW + pad * 2;
+      const lblH = 18;
+      const lblX = cfg.anchor === 'start' ? lx2 : lx2 - lblW;
+
+      g.append('rect')
+        .attr('class', `callout-label label-${d.name}`)
+        .attr('x', lblX - 1)
+        .attr('y', ly2 - lblH + 4)
+        .attr('width', lblW + 2)
+        .attr('height', lblH)
+        .attr('fill', 'rgba(14,14,22,0.85)')
+        .attr('rx', 2)
+        .attr('stroke', regCol[d.region] || C.dim)
+        .attr('stroke-width', 0.6)
+        .attr('stroke-opacity', 0.6);
+
+      g.append('text')
+        .attr('class', `callout-label label-${d.name}`)
+        .attr('x', lx2 + (cfg.anchor === 'start' ? pad : -pad))
+        .attr('y', ly2)
+        .attr('text-anchor', cfg.anchor)
+        .attr('fill', C.white)
+        .attr('font-family', 'DM Mono, monospace')
+        .attr('font-size', 11)
+        .attr('letter-spacing', '0.04em')
+        .text(d.name);
     });
 
-    // Build legend
+    // ── Legend ────────────────────────────────────────────
     const legEl = document.getElementById('ineq-legend');
     if (legEl) {
       legEl.innerHTML = '';
