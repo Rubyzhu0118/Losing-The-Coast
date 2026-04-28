@@ -1,0 +1,11 @@
+region,composite_risk_score,primary_hazards,notes
+Louisiana (coastal),0.96,"Subsidence + surge + land loss","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+South Florida,0.92,"Dense population + flat terrain + storm exposure","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+Texas Gulf Coast,0.88,"Hurricane surge + compound flooding","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+Outer Banks NC,0.85,"Barrier island erosion + surge","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+Hampton Roads VA,0.83,"Highest U.S. relative sea level rise","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+Mississippi Delta,0.80,"Land loss + high social vulnerability","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+South Carolina Coast,0.76,"Storm surge exposure + erosion","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+New York Metro Coast,0.70,"Post-Sandy infrastructure gaps","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+New England Shore,0.62,"Erosion + storm surge","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"
+Pacific Northwest,0.38,"Tsunami risk; lower chronic flood rate","FEMA NRI / NOAA SLR Viewer / CDC SVI 2023"

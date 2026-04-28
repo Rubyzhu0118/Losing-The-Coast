@@ -1,0 +1,56 @@
+county_name,state,region,fema_flood_risk_score,cdc_svi_score,population_tier,notes
+Orleans Parish,LA,Gulf,0.97,0.82,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Plaquemines Parish,LA,Gulf,0.95,0.76,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Cameron Parish,LA,Gulf,0.93,0.72,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Vermilion Parish,LA,Gulf,0.90,0.76,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Terrebonne Parish,LA,Gulf,0.89,0.74,Medium,FEMA NRI 2023 / CDC SVI 2022
+Jefferson Parish,LA,Gulf,0.91,0.68,Medium,FEMA NRI 2023 / CDC SVI 2022
+Lee County,FL,Gulf,0.90,0.55,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Monroe County,FL,Gulf,0.94,0.48,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Collier County,FL,Gulf,0.87,0.52,Medium,FEMA NRI 2023 / CDC SVI 2022
+Pinellas County,FL,Gulf,0.85,0.55,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Hillsborough County,FL,Gulf,0.80,0.56,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Charlotte County,FL,Gulf,0.88,0.57,Medium,FEMA NRI 2023 / CDC SVI 2022
+Escambia County,FL,Gulf,0.80,0.60,Medium,FEMA NRI 2023 / CDC SVI 2022
+Galveston County,TX,Gulf,0.88,0.62,Medium,FEMA NRI 2023 / CDC SVI 2022
+Harris County,TX,Gulf,0.84,0.58,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Jefferson County,TX,Gulf,0.86,0.66,Medium,FEMA NRI 2023 / CDC SVI 2022
+Mobile County,AL,Gulf,0.78,0.64,Medium,FEMA NRI 2023 / CDC SVI 2022
+Harrison County,MS,Gulf,0.83,0.68,Medium,FEMA NRI 2023 / CDC SVI 2022
+Miami-Dade County,FL,SE Atlantic,0.92,0.72,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Broward County,FL,SE Atlantic,0.89,0.62,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Palm Beach County,FL,SE Atlantic,0.87,0.54,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Volusia County,FL,SE Atlantic,0.76,0.53,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Chatham County,GA,SE Atlantic,0.80,0.65,Medium,FEMA NRI 2023 / CDC SVI 2022
+Hyde County,NC,SE Atlantic,0.84,0.68,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Tyrrell County,NC,SE Atlantic,0.82,0.72,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+New Hanover County,NC,SE Atlantic,0.74,0.50,Medium,FEMA NRI 2023 / CDC SVI 2022
+Horry County,SC,SE Atlantic,0.72,0.54,Medium,FEMA NRI 2023 / CDC SVI 2022
+Georgetown County,SC,SE Atlantic,0.76,0.60,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Charleston County,SC,SE Atlantic,0.78,0.56,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Norfolk City,VA,NE Atlantic,0.93,0.64,Medium,FEMA NRI 2023 / CDC SVI 2022
+Virginia Beach City,VA,NE Atlantic,0.88,0.50,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Accomack County,VA,NE Atlantic,0.82,0.64,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Dorchester County,MD,NE Atlantic,0.82,0.66,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Somerset County,MD,NE Atlantic,0.78,0.68,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Dare County,NC,NE Atlantic,0.86,0.48,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Atlantic County,NJ,NE Atlantic,0.76,0.55,Medium,FEMA NRI 2023 / CDC SVI 2022
+Cape May County,NJ,NE Atlantic,0.70,0.46,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Ocean County,NJ,NE Atlantic,0.72,0.48,Medium,FEMA NRI 2023 / CDC SVI 2022
+Queens County,NY,NE Atlantic,0.72,0.58,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Suffolk County,NY,NE Atlantic,0.68,0.46,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Barnstable County,MA,NE Atlantic,0.62,0.38,Medium,FEMA NRI 2023 / CDC SVI 2022
+Providence County,RI,NE Atlantic,0.56,0.56,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+New Haven County,CT,NE Atlantic,0.60,0.50,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Los Angeles County,CA,Pacific,0.38,0.54,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+San Francisco County,CA,Pacific,0.42,0.44,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Humboldt County,CA,Pacific,0.44,0.52,Small (<500k),FEMA NRI 2023 / CDC SVI 2022
+Snohomish County,WA,Pacific,0.35,0.40,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+King County,WA,Pacific,0.32,0.38,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Honolulu County,HI,Pacific,0.58,0.38,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Maui County,HI,Pacific,0.52,0.42,Medium,FEMA NRI 2023 / CDC SVI 2022
+Erie County,NY,Great Lakes,0.36,0.58,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Cuyahoga County,OH,Great Lakes,0.34,0.56,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Cook County,IL,Great Lakes,0.32,0.52,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Milwaukee County,WI,Great Lakes,0.28,0.54,Large (>1M),FEMA NRI 2023 / CDC SVI 2022
+Lucas County,OH,Great Lakes,0.38,0.60,Medium,FEMA NRI 2023 / CDC SVI 2022

@@ -212,8 +212,8 @@ function mono(s, x, y, txt, opts = {}) {
 
 /* ══════════════════════════════════════════════════════════
    S1 — SEA LEVEL LINE CHART
-   Dark bg, blue line, red projection, solid labels
-   M: t=20 r=58 b=84 l=104
+   Vivid satellite-era band · "3× faster" annotation box
+   M: t=28 r=62 b=84 l=104
 ══════════════════════════════════════════════════════════ */
 function buildSeaLevel() {
   const el = document.getElementById('chart-sea-level');
@@ -221,7 +221,7 @@ function buildSeaLevel() {
 
   const hist = seaLevelData();
   const proj = projData();
-  const M = { t: 24, r: 58, b: 84, l: 104 };
+  const M = { t: 28, r: 62, b: 84, l: 104 };
 
   function draw() {
     el.innerHTML = '';
@@ -236,19 +236,24 @@ function buildSeaLevel() {
 
     svg.append('rect').attr('width', W).attr('height', H).attr('fill', C.chartBg).attr('rx', 4);
 
+    /* ── Defs ─────────────────────────────────────────── */
     const defs = svg.append('defs');
-    // Area gradient
-    const ag = defs.append('linearGradient').attr('id', 'sl-ag')
-      .attr('gradientUnits', 'userSpaceOnUse').attr('x1', 0).attr('y1', M.t).attr('x2', 0).attr('y2', H - M.b);
-    ag.append('stop').attr('offset', '0%').attr('stop-color', C.blueL).attr('stop-opacity', 0.25);
-    ag.append('stop').attr('offset', '100%').attr('stop-color', C.blueL).attr('stop-opacity', 0);
 
-    // Projection gradient
+    // Full-history area gradient (vivid blue under the line)
+    const ag = defs.append('linearGradient').attr('id', 'sl-ag')
+      .attr('gradientUnits', 'userSpaceOnUse')
+      .attr('x1', 0).attr('y1', M.t).attr('x2', 0).attr('y2', H - M.b);
+    ag.append('stop').attr('offset', '0%').attr('stop-color', C.blueL).attr('stop-opacity', 0.42);
+    ag.append('stop').attr('offset', '100%').attr('stop-color', C.blueL).attr('stop-opacity', 0.02);
+
+    // Projection cone gradient
     const pg = defs.append('linearGradient').attr('id', 'sl-pg')
-      .attr('gradientUnits', 'userSpaceOnUse').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', H);
-    pg.append('stop').attr('offset', '0%').attr('stop-color', C.redL).attr('stop-opacity', 0.18);
+      .attr('gradientUnits', 'userSpaceOnUse')
+      .attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', H);
+    pg.append('stop').attr('offset', '0%').attr('stop-color', C.redL).attr('stop-opacity', 0.22);
     pg.append('stop').attr('offset', '100%').attr('stop-color', C.redL).attr('stop-opacity', 0);
 
+    /* ── Scales ───────────────────────────────────────── */
     const g = svg.append('g').attr('transform', `translate(${M.l},${M.t})`);
 
     const x = d3.scaleLinear().domain([1880, 2058]).range([0, w]);
@@ -256,56 +261,139 @@ function buildSeaLevel() {
       .domain([d3.min(hist, d => d.v) - 25, d3.max(proj, d => d.hi) + 45])
       .range([h, 0]);
 
+    /* ── Grid ─────────────────────────────────────────── */
     hGrid(g, y, w, 7);
 
-    // Zero line
+    // Zero / 1900 baseline
     if (y(0) >= 0 && y(0) <= h) {
-      g.append('line').attr('x1', 0).attr('x2', w).attr('y1', y(0)).attr('y2', y(0))
+      g.append('line').attr('x1', 0).attr('x2', w)
+        .attr('y1', y(0)).attr('y2', y(0))
         .attr('stroke', C.dim).attr('stroke-width', 1).attr('stroke-dasharray', '7 4');
       mono(g, w + 6, y(0) + 4, '1900 baseline', { fill: C.dim, size: 11 });
     }
 
-    // Axes
-    cleanAxis(g.append('g').call(d3.axisLeft(y).tickFormat(d => d + 'mm').ticks(8)), { size: 13 })
-      .selectAll('.tick text').attr('dx', -10);
+    /* ── Satellite era band (1993–2023) ───────────────── */
+    const satX1 = x(1993), satX2 = x(2023);
+    const bandW = satX2 - satX1;
 
-    cleanAxis(g.append('g').attr('transform', `translate(0,${h})`).call(
-      d3.axisBottom(x).tickFormat(d3.format('d')).ticks(9)
-    ), { size: 13 }).selectAll('.tick text').attr('dy', 18);
+    // Coloured fill — noticeably brighter than chart bg
+    g.append('rect')
+      .attr('x', satX1).attr('y', 0)
+      .attr('width', bandW).attr('height', h)
+      .attr('fill', C.blueL).attr('opacity', 0.14);
 
-    // Area fill (satellite era only — 1993+)
-    const satData = hist.filter(d => d.yr >= 1993);
-    const aFn = d3.area().x(d => x(d.yr)).y0(h).y1(d => y(d.v)).curve(d3.curveCatmullRom.alpha(0.5));
-    g.append('path').datum(satData).attr('d', aFn).attr('fill', 'url(#sl-ag)').attr('class', 'sl-area').attr('opacity', 0);
+    // Amber dashed left border
+    g.append('line')
+      .attr('x1', satX1).attr('x2', satX1).attr('y1', 0).attr('y2', h)
+      .attr('stroke', C.amber).attr('stroke-width', 1.6).attr('stroke-dasharray', '6 4');
 
-    // Projection cone
-    const coneFn = d3.area().x(d => x(d.yr)).y0(d => y(d.lo)).y1(d => y(d.hi)).curve(d3.curveCatmullRom.alpha(0.5));
-    g.append('path').datum(proj).attr('d', coneFn).attr('fill', C.redL).attr('opacity', 0).attr('class', 'sl-cone');
+    // "Satellite era begins" top label
+    mono(g, satX1 + 8, 18, 'Satellite era begins', { fill: C.amber, size: 12 });
 
-    // Historical line (animated draw)
-    const lineFn = d3.line().x(d => x(d.yr)).y(d => y(d.v)).curve(d3.curveCatmullRom.alpha(0.5));
-    const path = g.append('path').datum(hist).attr('d', lineFn)
+    // ── "Rate is / 3× faster since 1993" annotation box ──
+    // Positioned inside the band, below the label
+    const aBoxX = satX1 + 10;
+    const aBoxY = h * 0.22;
+    const aBoxW = 155, aBoxH = 48;
+
+    g.append('rect')
+      .attr('x', aBoxX).attr('y', aBoxY)
+      .attr('width', aBoxW).attr('height', aBoxH)
+      .attr('fill', 'rgba(30,60,140,0.35)')
+      .attr('stroke', C.blueL).attr('stroke-width', 0.9)
+      .attr('rx', 4);
+
+    g.append('text')
+      .attr('x', aBoxX + 11).attr('y', aBoxY + 18)
+      .attr('fill', C.white2)
+      .attr('font-family', 'DM Mono, monospace')
+      .attr('font-size', 11)
+      .text('Rate is');
+
+    g.append('text')
+      .attr('x', aBoxX + 11).attr('y', aBoxY + 35)
+      .attr('fill', C.blueL)
+      .attr('font-family', 'DM Mono, monospace')
+      .attr('font-size', 12).attr('font-weight', 'bold')
+      .text('3× faster since 1993');
+
+    /* ── Axes ─────────────────────────────────────────── */
+    cleanAxis(
+      g.append('g').call(d3.axisLeft(y).tickFormat(d => d + 'mm').ticks(8)),
+      { size: 13 }
+    ).selectAll('.tick text').attr('dx', -10);
+
+    cleanAxis(
+      g.append('g').attr('transform', `translate(0,${h})`).call(
+        d3.axisBottom(x).tickFormat(d3.format('d')).ticks(9)
+      ),
+      { size: 13 }
+    ).selectAll('.tick text').attr('dy', 18);
+
+    /* ── Area fill ────────────────────────────────────── */
+    const aFn = d3.area()
+      .x(d => x(d.yr)).y0(h).y1(d => y(d.v))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+    g.append('path').datum(hist)
+      .attr('d', aFn).attr('fill', 'url(#sl-ag)')
+      .attr('class', 'sl-area').attr('opacity', 0);
+
+    /* ── Projection cone ──────────────────────────────── */
+    const coneFn = d3.area()
+      .x(d => x(d.yr)).y0(d => y(d.lo)).y1(d => y(d.hi))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+    g.append('path').datum(proj)
+      .attr('d', coneFn).attr('fill', 'url(#sl-pg)')
+      .attr('opacity', 0).attr('class', 'sl-cone');
+
+    /* ── Historical line (animated draw) ─────────────── */
+    const lineFn = d3.line()
+      .x(d => x(d.yr)).y(d => y(d.v))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+
+    const path = g.append('path').datum(hist)
+      .attr('d', lineFn)
       .attr('fill', 'none')
       .attr('stroke', C.blueL)
       .attr('stroke-width', 2.6)
       .attr('stroke-linecap', 'round');
+
     const len = path.node().getTotalLength();
-    path.attr('stroke-dasharray', `${len} ${len}`).attr('stroke-dashoffset', len);
+    path.attr('stroke-dasharray', `${len} ${len}`)
+        .attr('stroke-dashoffset', len);
 
-    // Projection line
-    const projPath = g.append('path').datum(proj).attr('d', lineFn)
-      .attr('fill', 'none').attr('stroke', C.redL).attr('stroke-width', 2.4)
-      .attr('stroke-dasharray', '10 5').attr('opacity', 0);
+    /* ── Projection line ──────────────────────────────── */
+    const projPath = g.append('path').datum(proj)
+      .attr('d', lineFn)
+      .attr('fill', 'none').attr('stroke', C.redL)
+      .attr('stroke-width', 2.4).attr('stroke-dasharray', '10 5')
+      .attr('opacity', 0);
 
-    // Satellite marker
-    g.append('line').attr('x1', x(1993)).attr('x2', x(1993)).attr('y1', 0).attr('y2', h)
-      .attr('stroke', C.amber).attr('stroke-width', 1.4).attr('stroke-dasharray', '5 4');
-    mono(g, x(1993) + 7, 18, 'Satellite era begins', { fill: C.amber, size: 12 });
-
-    // Endpoint dot
+    /* ── 2023 endpoint dot ────────────────────────────── */
     const last = hist[hist.length - 1];
-    g.append('circle').attr('cx', x(last.yr)).attr('cy', y(last.v)).attr('r', 6)
+    g.append('circle')
+      .attr('cx', x(last.yr)).attr('cy', y(last.v)).attr('r', 6)
       .attr('fill', C.blueL).attr('stroke', C.chartBg).attr('stroke-width', 2);
+
+    // "Global rise ~21-24 cm since 1880" annotation near endpoint
+    const annX2 = x(last.yr) + 10, annY2 = y(last.v) - 18;
+    const aBox2W = 168, aBox2H = 48;
+    g.append('rect')
+      .attr('x', annX2).attr('y', annY2)
+      .attr('width', aBox2W).attr('height', aBox2H)
+      .attr('fill', 'rgba(18,36,80,0.5)')
+      .attr('stroke', C.blueL).attr('stroke-width', 0.7)
+      .attr('rx', 4);
+    g.append('text')
+      .attr('x', annX2 + 10).attr('y', annY2 + 17)
+      .attr('fill', C.white2)
+      .attr('font-family', 'DM Mono, monospace').attr('font-size', 11)
+      .text('Global rise:');
+    g.append('text')
+      .attr('x', annX2 + 10).attr('y', annY2 + 34)
+      .attr('fill', C.white)
+      .attr('font-family', 'DM Mono, monospace').attr('font-size', 11).attr('font-weight', 'bold')
+      .text('~21–24 cm since 1880');
 
     App.charts.seaLevel = { path, projPath, len, g };
   }
@@ -1144,18 +1232,63 @@ function buildRanking() {
    OBSERVERS
 ══════════════════════════════════════════════════════════ */
 function setupObservers() {
-  // Generic fade-in
-  const io = new IntersectionObserver(entries => {
+  // ── Section-level fade-in ──────────────────────────────
+  const secIO = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('sec-visible'); });
+  }, { threshold: 0.04, rootMargin: '0px 0px -3% 0px' });
+  document.querySelectorAll('.section').forEach(el => secIO.observe(el));
+
+  // ── Photo divider reveal ──────────────────────────────
+  const photoIO = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('pb-visible'); });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.photo-divider').forEach(el => photoIO.observe(el));
+
+  // ── Steps — cinematic stagger within each parent ──────
+  // Group steps by parent so siblings stagger together
+  const stepParents = new Map();
+  document.querySelectorAll('.step').forEach(el => {
+    const parent = el.parentElement;
+    if (!stepParents.has(parent)) stepParents.set(parent, []);
+    stepParents.get(parent).push(el);
+  });
+
+  const stepIO = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting || e.target._stepped) return;
+      e.target._stepped = true;
+      // Find index within its parent for stagger
+      const parent = e.target.parentElement;
+      const siblings = stepParents.get(parent) || [e.target];
+      const idx = siblings.indexOf(e.target);
+      const stagger = idx * 80; // 80ms between siblings
+      setTimeout(() => e.target.classList.add('visible'), stagger);
+    });
+  }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.step').forEach(el => stepIO.observe(el));
+
+  // ── Cards / stat items / coda — stagger via data-delay ─
+  const cardIO = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (!e.isIntersecting) return;
       const delay = +(e.target.dataset.delay || 0);
       setTimeout(() => e.target.classList.add('visible'), delay);
     });
-  }, { threshold: 0.18, rootMargin:'0px 0px -6% 0px' });
+  }, { threshold: 0.16, rootMargin: '0px 0px -6% 0px' });
+  document.querySelectorAll('.stat-item, .hz-card, .coda-cell').forEach(el => cardIO.observe(el));
 
-  document.querySelectorAll('.step, .stat-item, .hz-card, .coda-cell').forEach(el => io.observe(el));
+  // ── Stat numbers — animated count-up on entrance ──────
+  const statIO = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting || e.target._counted) return;
+      e.target._counted = true;
+      const numEl = e.target.querySelector('.stat-n');
+      if (numEl) animateStatNumber(numEl);
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.stat-item').forEach(el => statIO.observe(el));
 
-  // Chart one-shot animations
+  // ── Chart one-shot animations ──────────────────────────
   const cio = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (!e.isIntersecting || App.animated.has(e.target.id)) return;
@@ -1167,17 +1300,53 @@ function setupObservers() {
       if (id === 'chart-ranking')    animateRanking();
     });
   }, { threshold: 0.22 });
-
   ['sp1','chart-flooding','sp6','chart-ranking'].forEach(id => {
     const el = document.getElementById(id);
     if (el) cio.observe(el);
   });
 
-  // Step → S6 highlight
+  // ── Step → S6 scatter highlight ───────────────────────
   const sio = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) handleStep(e.target.dataset.step); });
-  }, { threshold: 0.55, rootMargin:'0px 0px -28% 0px' });
+  }, { threshold: 0.55, rootMargin: '0px 0px -28% 0px' });
   document.querySelectorAll('[data-step]').forEach(el => sio.observe(el));
+}
+
+/* ══════════════════════════════════════════════════════════
+   STAT NUMBER COUNTER ANIMATION
+   Counts up from 0 to the displayed value on entrance
+══════════════════════════════════════════════════════════ */
+function animateStatNumber(el) {
+  const text  = el.textContent.trim();
+  // Parse: extract prefix ($), number part, suffix (M, B, T, ×, %, +)
+  const match = text.match(/^([^0-9]*)([0-9]+(?:\.[0-9]+)?)(.*)$/);
+  if (!match) return; // e.g. "10×" has no decimal — parse as-is
+
+  const prefix = match[1] || '';
+  const target = parseFloat(match[2]);
+  const suffix = match[3] || '';
+
+  if (isNaN(target)) return;
+
+  const duration  = 1400; // ms
+  const startTime = performance.now();
+
+  // Easing: ease-out cubic
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function frame(now) {
+    const elapsed  = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased    = easeOut(progress);
+    const current  = target * eased;
+    // Format: if original had no decimal, show integer
+    const formatted = target % 1 === 0 ? Math.round(current) : current.toFixed(1);
+    el.textContent = prefix + formatted + suffix;
+    if (progress < 1) requestAnimationFrame(frame);
+    else el.textContent = text; // restore exact original
+  }
+
+  requestAnimationFrame(frame);
 }
 
 function animateSeaLevel() {
