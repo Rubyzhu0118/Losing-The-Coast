@@ -43,7 +43,15 @@
 html { scroll-behavior: smooth; font-size: 16px; }
 
 body {
-  background: var(--black);
+  /* Deep ocean base — very subtle, never overpowers content */
+  background-color: #080c12;
+  background-image:
+    /* Soft top-left blue vignette */
+    radial-gradient(ellipse 90% 60% at 0% 0%,   rgba(10,28,60,0.45)  0%, transparent 60%),
+    /* Bottom-right deep teal shadow */
+    radial-gradient(ellipse 80% 55% at 100% 100%, rgba(8,36,50,0.35)  0%, transparent 60%),
+    /* Center gentle upward glow */
+    radial-gradient(ellipse 120% 50% at 50% 100%, rgba(5,18,40,0.50)  0%, transparent 55%);
   color: var(--white);
   font-family: var(--sans);
   font-weight: 400;
@@ -81,9 +89,12 @@ img    { display: block; max-width: 100%; }
   object-fit: cover;
   object-position: center 35%;
   z-index: 0;
-  transform: scale(1.12);
+  transform: scale(1.06);
   animation: hero-zoom 16s var(--ease) forwards;
 }
+
+/* Video needs pointer-events off */
+video.hero-bg { pointer-events: none; }
 
 @keyframes hero-zoom { to { transform: scale(1); } }
 
@@ -189,10 +200,11 @@ img    { display: block; max-width: 100%; }
 /* ── SECTIONS ─────────────────────────────────────────────── */
 .section {
   position: relative;
-  background: var(--black);
+  /* Transparent — body ocean gradient visible underneath */
+  background: transparent;
 }
 
-.section-fw   { padding: 0; }
+.section-fw { padding: 0; }
 
 /* ── SEC LABELS ──────────────────────────────────────────── */
 .sec-label {
@@ -754,7 +766,7 @@ img    { display: block; max-width: 100%; }
 }
 
 /* ── S6 INEQUALITY ────────────────────────────────────────── */
-.section-ineq { background: var(--black2); }
+.section-ineq { background: rgba(10,12,22,0.68); }
 
 .ineq-header {
   padding: 10vh 9vw 5vh;
@@ -898,7 +910,7 @@ img    { display: block; max-width: 100%; }
 }
 
 /* ── CONCLUSION ───────────────────────────────────────────── */
-.section-conclusion { background: var(--black); }
+.section-conclusion { background: rgba(8,10,18,0.55); }
 
 .concl-split {
   display: flex;
@@ -1158,21 +1170,29 @@ img    { display: block; max-width: 100%; }
 /* ── PREMIUM DESIGN ELEVATIONS ────────────────────────────── */
 
 /* Sections slide up on entrance — initial state */
+/* Sections — always visible by default, opt-in animation via .anim-section */
 .section {
+  opacity: 1;
+  transform: none;
+}
+
+/* JS adds .anim-section to sections it wants to animate in */
+.section.anim-section {
   opacity: 0;
-  transform: translateY(32px);
-  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(28px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 1s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
-.section.sec-visible { opacity: 1; transform: translateY(0); }
+.section.anim-section.sec-visible { opacity: 1; transform: translateY(0); }
 
-/* Sections that must always be visible (dark/photo bg) */
+/* These sections are always fully visible regardless */
 .section-hazards,
 .section-ineq,
 .section-conclusion,
-.section-fw {
+.section-fw,
+.section-map {
   opacity: 1 !important;
   transform: none !important;
   transition: none !important;
@@ -1350,36 +1370,329 @@ img    { display: block; max-width: 100%; }
   margin: 1.4rem 0;
 }
 
-/* ── SCROLLBAR ────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: var(--black); }
-::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 2px; }
+/* ══════════════════════════════════════════════════════════
+   MAP EXPLORER SECTION — Ocean gradient + photo header
+══════════════════════════════════════════════════════════ */
 
-/* ── RESPONSIVE ───────────────────────────────────────────── */
-@media (max-width: 1100px) {
-  .two-col, .two-col-rev { flex-direction: column; min-height: auto; }
-  .col-chart { width: 100%; }
-  .two-col-rev .col-chart { order: 0; }
-  .col-narr, .col-narr-l { width: 100%; max-width: 100%; padding: 5vh 6vw; gap: 6vh; }
-  .sticky-panel { position: relative; height: auto; min-height: 54vh; padding: 4vh 5vw; }
-  .step { opacity: 1; transform: none; }
-  .hz-card { opacity: 1; transform: none; }
-  .stat-item { opacity: 1; transform: none; }
-  .coda-cell { opacity: 1; transform: none; }
-  .hz-grid { grid-template-columns: 1fr; }
-  .stat-row { grid-template-columns: 1fr; }
-  .coda-row { grid-template-columns: 1fr 1fr; }
-  .sources-grid { grid-template-columns: 1fr; }
-  .ineq-layout { flex-direction: column; min-height: auto; }
-  .ineq-chart-col { width: 100%; }
-  .ineq-narr { padding: 5vh 6vw; gap: 6vh; }
-  .concl-split { flex-direction: column; }
-  .concl-photo { width: 100%; min-height: 300px; }
-  .concl-photo-fade { background: linear-gradient(to bottom, transparent 40%, var(--black) 100%); }
-  .concl-text { padding: 5vh 6vw; }
-  .photo-pair { grid-template-columns: 1fr; }
-  .pp-img { height: 280px; }
+
+.map-header {
+  padding: 9vh 9vw 5vh;
+  max-width: 860px;
 }
+
+.map-title {
+  font-family: var(--serif);
+  font-size: clamp(2.8rem, 4.8vw, 5rem);
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 1.1rem 0 1rem;
+}
+
+.map-intro {
+  font-family: var(--sans);
+  font-size: 1.02rem;
+  color: rgba(155,170,190,0.72);
+  line-height: 1.72;
+  max-width: 560px;
+}
+
+/* ── Split: map 60% | panel 40% ── */
+.map-explorer {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  min-height: 640px;
+  border-top: 1px solid rgba(74,130,224,0.08);
+}
+
+.map-left {
+  position: relative;
+  padding: 3.5vh 3vw 2.5vh 4vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  background: rgba(2,5,12,0.35);
+  border-right: 1px solid rgba(74,130,224,0.12);
+  overflow: hidden;
+}
+
+/* Ambient ocean glow behind map */
+.map-left::before {
+  content: '';
+  position: absolute;
+  left: 25%; top: 30%;
+  width: 50%; height: 40%;
+  background: radial-gradient(ellipse, rgba(36,99,200,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.us-map { width: 100%; flex: 1; position: relative; z-index: 1; }
+.us-map svg { display: block; width: 100%; }
+
+.map-legend {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.map-leg-items { display: flex; gap: 1.6rem; flex-wrap: wrap; }
+
+.map-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(140,155,175,0.7);
+}
+
+.map-leg-swatch {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* ── Right panel ── */
+.map-panel {
+  background: rgba(3,6,16,0.78);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  border-left: 1px solid rgba(74,130,224,0.12);
+  backdrop-filter: blur(6px);
+}
+
+/* Default / empty state */
+.mp-default {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  padding: 3rem 3rem;
+  text-align: center;
+}
+
+.mp-default-icon {
+  color: rgba(74,130,224,0.2);
+  animation: pulse-icon 3s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.08); }
+}
+
+.mp-default p {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(120,140,165,0.4);
+  line-height: 2;
+  max-width: 200px;
+}
+
+/* Active panel — scrollable content */
+.mp-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.mp-content::-webkit-scrollbar { display: none; }
+
+.mp-content.entering {
+  animation: panel-in 0.5s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Panel: tag + headline ── */
+.mp-top {
+  padding: 2.6rem 2.6rem 1.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.mp-tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(138,178,238,0.65);
+  margin-bottom: 1rem;
+  padding-left: 0.9rem;
+  border-left: 1.5px solid rgba(74,130,224,0.5);
+  line-height: 1;
+}
+
+.mp-headline {
+  font-family: var(--serif);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.14;
+  letter-spacing: -0.022em;
+  max-width: 320px;
+}
+
+/* ── Hero metric ── */
+.mp-metric {
+  padding: 2.2rem 2.6rem 2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+/* Subtle glow behind metric number */
+.mp-metric::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 2.6rem;
+  width: 60%; height: 60%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.18;
+  background: var(--mp-col, #e05040);
+  pointer-events: none;
+}
+
+.mp-metric-num {
+  font-family: var(--serif);
+  font-size: 5rem;
+  font-weight: 900;
+  line-height: 0.88;
+  letter-spacing: -0.045em;
+  display: block;
+  animation: metric-in 0.7s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes metric-in {
+  from { opacity:0; transform: scale(0.88); }
+  to   { opacity:1; transform: scale(1); }
+}
+
+.mp-metric-label {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(140,155,175,0.65);
+  display: block;
+  margin-top: 0.9rem;
+  line-height: 1.6;
+  max-width: 240px;
+}
+
+/* ── Chart ── */
+.mp-chart-wrap {
+  padding: 2rem 2.6rem 1.8rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.mp-chart-title {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(120,140,160,0.55);
+  margin-bottom: 1.1rem;
+  line-height: 1.5;
+}
+
+.mp-chart { width: 100%; height: 136px; }
+.mp-chart svg { display: block; overflow: visible; }
+
+/* ── Body text ── */
+.mp-body {
+  padding: 1.8rem 2.6rem 0;
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  color: rgba(200,196,188,0.78);
+  line-height: 1.82;
+}
+
+/* ── Stats grid ── */
+.mp-stats-row {
+  padding: 1.6rem 2.6rem 2.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: auto;
+}
+
+.mp-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--mono);
+  font-size: 0.69rem;
+}
+
+.mp-stat:last-child { border-bottom: none; }
+.mp-stat-key { color: rgba(130,150,170,0.6); letter-spacing: 0.07em; }
+.mp-stat-val { color: var(--white); font-weight: 500; text-align: right; letter-spacing: 0.02em; }
+
+/* Map tooltip */
+.map-region-tip {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(6,10,20,0.96);
+  border: 1px solid rgba(74,130,224,0.3);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--white2);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.14s, transform 0.14s;
+  backdrop-filter: blur(10px);
+  line-height: 1.6;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+.map-region-tip.show { opacity: 1; transform: translateY(0); }
+.map-region-tip strong { color: var(--white); display: block; font-size: 0.74rem; }
+
+/* Pulsing dot animation */
+@keyframes map-pulse {
+  0%   { r: 6;  opacity: 0.55; }
+  60%  { r: 22; opacity: 0; }
+  100% { r: 22; opacity: 0; }
+}
+circle.map-pulse-ring { animation: map-pulse 2.8s ease-out infinite; }
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .map-explorer { grid-template-columns: 1fr; min-height: auto; }
+  .map-panel    { position: static; height: auto; min-height: 560px; }
+  .mp-metric-num { font-size: 3.8rem; }
+  .mp-headline   { font-size: 1.55rem; }
+}
+
 
 @media (max-width: 640px) {
   .ht-line { font-size: 3.2rem; }

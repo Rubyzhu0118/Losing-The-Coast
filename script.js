@@ -44,8 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
   buildInequality();
   buildWetlands();
   buildRanking();
+  buildUSMap();
   setupObservers();
   App.tip = document.getElementById('tooltip');
+  // Apply ocean atmosphere to all charts after a short delay
+  setTimeout(upgradeChartAtmosphere, 400);
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -90,6 +93,12 @@ function heroEntrance() {
     if (hm) {
       hm.style.transition = 'opacity 0.9s cubic-bezier(0.22,1,0.36,1)';
       hm.style.opacity    = '1';
+    }
+    // Byline
+    const hb = document.getElementById('hbyline');
+    if (hb) {
+      hb.style.transition = 'opacity 0.9s cubic-bezier(0.22,1,0.36,1)';
+      hb.style.opacity    = '1';
     }
   }, 2200);
 }
@@ -1232,11 +1241,18 @@ function buildRanking() {
    OBSERVERS
 ══════════════════════════════════════════════════════════ */
 function setupObservers() {
-  // ── Section-level fade-in ──────────────────────────────
+  // ── Section-level fade-in — opt-in only ──────────────
+  const SKIP_CLASSES = ['section-hazards','section-ineq','section-conclusion','section-fw','section-map'];
+  const animSections = Array.from(document.querySelectorAll('.section')).filter(el =>
+    !SKIP_CLASSES.some(c => el.classList.contains(c))
+  );
+  // Mark them for animation
+  animSections.forEach(el => el.classList.add('anim-section'));
+
   const secIO = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('sec-visible'); });
   }, { threshold: 0.04, rootMargin: '0px 0px -3% 0px' });
-  document.querySelectorAll('.section').forEach(el => secIO.observe(el));
+  animSections.forEach(el => secIO.observe(el));
 
   // ── Photo divider reveal ──────────────────────────────
   const photoIO = new IntersectionObserver(entries => {
@@ -1396,13 +1412,586 @@ function handleStep(step) {
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   CHART ATMOSPHERIC UPGRADES
+   Add ocean depth bg, waterline, ambient glow to all charts
+══════════════════════════════════════════════════════════ */
+function addOceanBg(svg, W, H) {
+  /* Deep ocean gradient: near-black → very dark blue at bottom */
+  const defs = svg.select('defs').empty() ? svg.append('defs') : svg.select('defs');
+  const og = defs.append('linearGradient').attr('id', 'ocean-bg-g')
+    .attr('gradientUnits', 'userSpaceOnUse')
+    .attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', H);
+  og.append('stop').attr('offset', '0%').attr('stop-color', '#0d1420').attr('stop-opacity', 1);
+  og.append('stop').attr('offset', '100%').attr('stop-color', '#060c16').attr('stop-opacity', 1);
+  /* Replace solid chartBg rect with gradient */
+  svg.select('rect').attr('fill', 'url(#ocean-bg-g)');
+
+  /* Subtle horizon glow: horizontal band near bottom */
+  svg.insert('rect', ':nth-child(2)')
+    .attr('width', W).attr('height', H * 0.35).attr('y', H * 0.65)
+    .attr('fill', 'none')
+    .attr('style', `fill: url(#ocean-bg-g); opacity: 0`); // placeholder for glow
+
+  /* Subtle noise texture via SVG feTurbulence */
+  const flt = defs.append('filter').attr('id', 'ocean-noise').attr('x', 0).attr('y', 0).attr('width', '100%').attr('height', '100%');
+  flt.append('feTurbulence').attr('type', 'fractalNoise').attr('baseFrequency', '0.65').attr('numOctaves', 3).attr('stitchTiles', 'stitch').attr('result', 'noise');
+  flt.append('feColorMatrix').attr('type', 'saturate').attr('values', '0').attr('in', 'noise').attr('result', 'greyNoise');
+  flt.append('feBlend').attr('in', 'SourceGraphic').attr('in2', 'greyNoise').attr('mode', 'multiply').attr('result', 'blend');
+  flt.append('feComposite').attr('in', 'blend').attr('in2', 'SourceGraphic').attr('operator', 'in');
+
+  /* Tiny noise overlay rect */
+  svg.insert('rect', ':nth-child(3)')
+    .attr('width', W).attr('height', H)
+    .attr('fill', '#ffffff').attr('opacity', 0.018)
+    .attr('filter', 'url(#ocean-noise)');
+}
+
+function addHorizonGlow(g, w, h) {
+  /* Ambient blue glow near bottom axis — like ocean reflecting light */
+  const glowGrad = g.append('defs').append('radialGradient')
+    .attr('id', 'horizon-glow-g')
+    .attr('cx', '50%').attr('cy', '100%').attr('r', '55%')
+    .attr('gradientUnits', 'objectBoundingBox');
+  glowGrad.append('stop').attr('offset', '0%').attr('stop-color', '#1a4a8a').attr('stop-opacity', 0.18);
+  glowGrad.append('stop').attr('offset', '100%').attr('stop-color', '#1a4a8a').attr('stop-opacity', 0);
+  g.insert('rect', ':first-child')
+    .attr('x', 0).attr('y', 0).attr('width', w).attr('height', h)
+    .attr('fill', 'url(#horizon-glow-g)');
+}
+
+/* ══════════════════════════════════════════════════════════
+   US INTERACTIVE MAP — ALL DATA INLINE, ZERO EXTERNAL FILES
+   D3 geoAlbersUsa · real state boundaries · click → panel
+══════════════════════════════════════════════════════════ */
+
+/* ── Inline US States GeoJSON (simplified, real coordinates) ── */
+const US_STATES_GEO = {"type":"FeatureCollection","features":[
+{"type":"Feature","id":"01","properties":{"name":"Alabama"},"geometry":{"type":"Polygon","coordinates":[[[-88.5,35.0],[-85.6,35.0],[-85.2,32.9],[-84.9,32.3],[-85.1,32.0],[-85.0,31.6],[-85.0,31.0],[-87.6,31.0],[-87.6,30.2],[-88.0,30.4],[-88.5,30.4],[-88.5,35.0]]]}},
+{"type":"Feature","id":"04","properties":{"name":"Arizona"},"geometry":{"type":"Polygon","coordinates":[[[-114.8,37.0],[-114.8,35.1],[-114.6,34.9],[-114.4,34.1],[-114.1,33.5],[-113.3,32.0],[-111.4,31.4],[-110.5,31.3],[-109.1,31.3],[-109.1,37.0],[-114.8,37.0]]]}},
+{"type":"Feature","id":"05","properties":{"name":"Arkansas"},"geometry":{"type":"Polygon","coordinates":[[[-94.6,36.5],[-90.2,36.5],[-90.1,36.0],[-90.4,35.6],[-90.2,35.1],[-91.1,34.9],[-91.4,34.5],[-91.5,34.0],[-92.0,33.6],[-93.2,33.0],[-94.1,33.0],[-94.5,33.6],[-94.4,35.4],[-94.6,36.5]]]}},
+{"type":"Feature","id":"06","properties":{"name":"California"},"geometry":{"type":"Polygon","coordinates":[[[-124.2,42.0],[-120.0,42.0],[-120.0,39.0],[-118.0,35.1],[-117.1,34.6],[-115.6,32.7],[-114.7,32.7],[-114.7,33.7],[-114.6,34.9],[-114.8,35.1],[-114.8,37.0],[-120.0,39.0],[-122.4,37.3],[-122.5,37.8],[-123.7,38.9],[-123.8,39.8],[-124.2,40.0],[-124.4,40.5],[-124.2,42.0]]]}},
+{"type":"Feature","id":"08","properties":{"name":"Colorado"},"geometry":{"type":"Polygon","coordinates":[[[-109.1,41.0],[-102.1,41.0],[-102.1,37.0],[-109.1,37.0],[-109.1,41.0]]]}},
+{"type":"Feature","id":"09","properties":{"name":"Connecticut"},"geometry":{"type":"Polygon","coordinates":[[[-73.7,42.1],[-71.8,42.0],[-71.8,41.3],[-73.1,41.0],[-73.5,41.2],[-73.7,42.1]]]}},
+{"type":"Feature","id":"10","properties":{"name":"Delaware"},"geometry":{"type":"Polygon","coordinates":[[[-75.8,39.7],[-75.4,39.8],[-75.1,38.5],[-75.7,38.5],[-75.8,39.7]]]}},
+{"type":"Feature","id":"12","properties":{"name":"Florida"},"geometry":{"type":"Polygon","coordinates":[[[-87.6,30.2],[-87.6,31.0],[-85.0,31.0],[-85.1,31.6],[-85.0,31.6],[-84.9,32.3],[-82.0,30.6],[-81.5,30.1],[-81.4,29.4],[-80.7,28.5],[-80.1,27.0],[-80.0,26.1],[-80.2,25.2],[-80.7,25.1],[-81.1,25.1],[-81.4,25.5],[-81.7,25.8],[-82.1,26.5],[-82.1,27.0],[-82.6,27.8],[-82.7,28.2],[-82.8,28.9],[-83.3,29.7],[-84.0,30.0],[-84.9,29.7],[-85.3,29.7],[-86.0,30.0],[-87.2,30.3],[-87.6,30.2]]]}},
+{"type":"Feature","id":"13","properties":{"name":"Georgia"},"geometry":{"type":"Polygon","coordinates":[[[-85.6,35.0],[-83.1,35.0],[-83.3,35.2],[-82.8,35.1],[-81.8,35.2],[-80.8,35.0],[-79.7,34.8],[-77.7,34.5],[-78.0,33.9],[-79.5,33.2],[-80.9,32.0],[-81.1,31.7],[-81.5,31.1],[-82.0,30.6],[-84.9,32.3],[-85.2,32.9],[-85.6,35.0]]]}},
+{"type":"Feature","id":"16","properties":{"name":"Idaho"},"geometry":{"type":"Polygon","coordinates":[[[-117.2,49.0],[-116.1,49.0],[-115.0,47.7],[-114.3,46.7],[-112.2,45.6],[-111.1,45.0],[-111.1,44.0],[-112.2,44.5],[-113.0,43.5],[-113.9,42.9],[-114.1,42.0],[-117.0,42.0],[-117.0,43.6],[-116.9,44.2],[-117.2,49.0]]]}},
+{"type":"Feature","id":"17","properties":{"name":"Illinois"},"geometry":{"type":"Polygon","coordinates":[[[-91.5,40.6],[-88.1,41.8],[-87.5,41.8],[-87.5,40.5],[-88.0,39.8],[-87.5,39.4],[-88.0,39.2],[-88.0,38.7],[-87.5,37.9],[-88.1,37.8],[-88.5,37.4],[-88.5,37.0],[-90.2,36.5],[-90.4,39.0],[-91.5,40.6]]]}},
+{"type":"Feature","id":"18","properties":{"name":"Indiana"},"geometry":{"type":"Polygon","coordinates":[[[-87.5,41.8],[-84.8,41.8],[-84.8,39.8],[-85.0,39.6],[-85.2,38.7],[-85.4,38.1],[-85.4,37.8],[-87.5,37.9],[-88.0,38.7],[-88.0,39.2],[-87.5,39.4],[-88.0,39.8],[-87.5,40.5],[-87.5,41.8]]]}},
+{"type":"Feature","id":"19","properties":{"name":"Iowa"},"geometry":{"type":"Polygon","coordinates":[[[-96.6,43.5],[-91.2,43.5],[-90.9,43.2],[-91.1,42.8],[-91.5,40.6],[-90.4,39.0],[-94.6,40.0],[-96.4,42.5],[-96.6,43.5]]]}},
+{"type":"Feature","id":"20","properties":{"name":"Kansas"},"geometry":{"type":"Polygon","coordinates":[[[-102.1,40.0],[-94.6,40.0],[-94.6,37.0],[-100.0,37.0],[-102.1,37.0],[-102.1,40.0]]]}},
+{"type":"Feature","id":"21","properties":{"name":"Kentucky"},"geometry":{"type":"Polygon","coordinates":[[[-89.4,36.5],[-82.1,36.5],[-82.0,37.5],[-82.6,38.4],[-83.0,38.7],[-83.7,38.6],[-84.2,39.1],[-84.8,39.1],[-84.8,38.8],[-85.4,38.1],[-85.2,38.7],[-85.0,39.6],[-87.5,37.9],[-88.1,37.8],[-88.5,37.4],[-88.5,37.0],[-89.4,36.5]]]}},
+{"type":"Feature","id":"22","properties":{"name":"Louisiana"},"geometry":{"type":"Polygon","coordinates":[[[-94.0,33.0],[-94.0,30.0],[-93.2,29.8],[-91.6,29.5],[-90.0,29.1],[-89.1,28.9],[-89.6,29.5],[-90.3,29.3],[-89.9,30.0],[-89.4,30.1],[-89.1,30.5],[-88.0,30.4],[-87.6,30.2],[-87.6,31.0],[-85.0,31.0],[-84.9,32.3],[-85.2,32.9],[-88.5,35.0],[-88.5,36.5],[-91.0,34.9],[-91.4,34.5],[-91.5,34.0],[-91.9,33.6],[-93.2,33.0],[-94.0,33.0]]]}},
+{"type":"Feature","id":"23","properties":{"name":"Maine"},"geometry":{"type":"Polygon","coordinates":[[[-71.1,45.3],[-67.8,47.1],[-66.9,44.8],[-67.0,44.4],[-69.0,43.9],[-70.4,43.1],[-70.8,43.4],[-71.0,43.7],[-71.1,45.3]]]}},
+{"type":"Feature","id":"24","properties":{"name":"Maryland"},"geometry":{"type":"Polygon","coordinates":[[[-79.5,39.7],[-75.8,39.7],[-75.8,38.5],[-76.0,38.1],[-76.5,38.5],[-77.0,38.7],[-77.5,39.3],[-77.5,39.7],[-78.0,39.6],[-79.5,39.7]]]}},
+{"type":"Feature","id":"25","properties":{"name":"Massachusetts"},"geometry":{"type":"Polygon","coordinates":[[[-73.5,42.1],[-70.9,42.9],[-70.3,41.6],[-71.4,41.5],[-71.8,41.3],[-71.8,42.0],[-73.5,42.1]]]}},
+{"type":"Feature","id":"26","properties":{"name":"Michigan"},"geometry":{"type":"Polygon","coordinates":[[[-90.4,46.6],[-84.9,46.6],[-83.5,46.1],[-84.5,45.8],[-84.9,44.9],[-83.5,44.0],[-82.8,43.0],[-82.5,42.0],[-84.8,41.8],[-87.5,41.8],[-88.1,41.8],[-90.4,46.6]]]}},
+{"type":"Feature","id":"27","properties":{"name":"Minnesota"},"geometry":{"type":"Polygon","coordinates":[[[-97.2,49.0],[-89.5,48.0],[-90.4,46.6],[-92.0,46.7],[-92.3,46.1],[-96.6,43.5],[-96.5,45.3],[-97.2,49.0]]]}},
+{"type":"Feature","id":"28","properties":{"name":"Mississippi"},"geometry":{"type":"Polygon","coordinates":[[[-91.6,34.9],[-88.1,34.9],[-88.1,30.4],[-89.1,30.5],[-89.4,30.1],[-89.9,30.0],[-90.3,29.3],[-90.0,29.1],[-91.6,29.5],[-93.8,29.8],[-94.0,30.0],[-94.0,33.0],[-93.2,33.0],[-91.9,33.6],[-91.6,34.9]]]}},
+{"type":"Feature","id":"29","properties":{"name":"Missouri"},"geometry":{"type":"Polygon","coordinates":[[[-95.8,40.6],[-91.7,40.6],[-91.5,40.6],[-90.4,39.0],[-90.2,36.5],[-89.4,36.5],[-88.5,37.0],[-88.1,37.8],[-87.5,37.9],[-85.4,37.8],[-92.0,36.5],[-94.6,36.5],[-94.6,40.0],[-95.8,40.6]]]}},
+{"type":"Feature","id":"30","properties":{"name":"Montana"},"geometry":{"type":"Polygon","coordinates":[[[-116.0,49.0],[-104.0,49.0],[-104.0,45.0],[-111.1,45.0],[-112.2,45.6],[-114.3,46.7],[-115.0,47.7],[-116.1,49.0],[-116.0,49.0]]]}},
+{"type":"Feature","id":"31","properties":{"name":"Nebraska"},"geometry":{"type":"Polygon","coordinates":[[[-104.1,43.0],[-97.0,43.0],[-97.0,42.0],[-96.0,40.5],[-95.3,40.0],[-94.6,40.0],[-102.1,40.0],[-102.1,43.0],[-104.1,43.0]]]}},
+{"type":"Feature","id":"32","properties":{"name":"Nevada"},"geometry":{"type":"Polygon","coordinates":[[[-120.0,42.0],[-114.1,42.0],[-114.1,37.0],[-117.0,37.0],[-120.0,39.0],[-120.0,42.0]]]}},
+{"type":"Feature","id":"33","properties":{"name":"New Hampshire"},"geometry":{"type":"Polygon","coordinates":[[[-72.6,45.0],[-71.1,45.3],[-71.0,43.7],[-70.8,43.4],[-70.4,43.1],[-72.6,43.1],[-72.6,45.0]]]}},
+{"type":"Feature","id":"34","properties":{"name":"New Jersey"},"geometry":{"type":"Polygon","coordinates":[[[-75.6,39.6],[-74.7,38.9],[-74.0,39.5],[-74.2,40.8],[-74.0,41.4],[-75.2,41.8],[-75.6,41.0],[-75.6,39.6]]]}},
+{"type":"Feature","id":"35","properties":{"name":"New Mexico"},"geometry":{"type":"Polygon","coordinates":[[[-109.1,37.0],[-103.0,37.0],[-103.0,32.0],[-106.6,32.0],[-106.6,31.8],[-108.2,31.8],[-109.1,31.3],[-109.1,37.0]]]}},
+{"type":"Feature","id":"36","properties":{"name":"New York"},"geometry":{"type":"Polygon","coordinates":[[[-79.8,42.3],[-74.7,44.5],[-73.7,43.6],[-72.6,43.1],[-72.6,45.0],[-73.7,45.0],[-75.2,44.9],[-76.5,44.1],[-78.0,44.2],[-79.8,43.5],[-79.8,42.3]]]}},
+{"type":"Feature","id":"37","properties":{"name":"North Carolina"},"geometry":{"type":"Polygon","coordinates":[[[-84.3,35.0],[-80.8,35.0],[-80.8,35.6],[-78.5,36.5],[-75.8,36.5],[-75.4,35.8],[-76.0,35.1],[-77.7,34.5],[-79.7,34.8],[-80.8,35.0],[-81.8,35.2],[-82.8,35.1],[-83.3,35.2],[-84.3,35.0]]]}},
+{"type":"Feature","id":"38","properties":{"name":"North Dakota"},"geometry":{"type":"Polygon","coordinates":[[[-104.0,49.0],[-97.2,49.0],[-97.2,47.0],[-96.6,43.5],[-99.9,43.5],[-104.0,43.0],[-104.0,49.0]]]}},
+{"type":"Feature","id":"39","properties":{"name":"Ohio"},"geometry":{"type":"Polygon","coordinates":[[[-84.8,41.8],[-80.5,42.3],[-80.5,40.6],[-80.6,39.7],[-79.5,39.7],[-79.5,39.2],[-81.5,38.2],[-82.0,37.5],[-82.1,36.5],[-84.8,38.8],[-84.8,39.1],[-84.8,41.8]]]}},
+{"type":"Feature","id":"40","properties":{"name":"Oklahoma"},"geometry":{"type":"Polygon","coordinates":[[[-103.0,37.0],[-94.6,36.5],[-94.4,35.4],[-94.5,33.6],[-94.1,33.0],[-100.0,33.0],[-100.0,36.5],[-102.1,36.5],[-103.0,36.5],[-103.0,37.0]]]}},
+{"type":"Feature","id":"41","properties":{"name":"Oregon"},"geometry":{"type":"Polygon","coordinates":[[[-124.6,46.3],[-123.1,44.6],[-124.2,43.6],[-124.1,42.0],[-117.0,42.0],[-117.0,45.0],[-116.9,46.0],[-118.0,46.5],[-120.5,47.7],[-124.6,47.5],[-124.6,46.3]]]}},
+{"type":"Feature","id":"42","properties":{"name":"Pennsylvania"},"geometry":{"type":"Polygon","coordinates":[[[-80.5,42.3],[-74.7,42.0],[-74.7,41.4],[-75.2,41.8],[-76.0,41.0],[-79.8,41.0],[-80.5,40.6],[-80.5,42.3]]]}},
+{"type":"Feature","id":"44","properties":{"name":"Rhode Island"},"geometry":{"type":"Polygon","coordinates":[[[-71.8,42.0],[-71.4,41.5],[-71.8,41.3],[-71.8,42.0]]]}},
+{"type":"Feature","id":"45","properties":{"name":"South Carolina"},"geometry":{"type":"Polygon","coordinates":[[[-83.3,35.2],[-83.1,35.0],[-79.7,34.8],[-78.5,36.5],[-80.8,35.6],[-80.8,35.0],[-83.3,35.2]]]}},
+{"type":"Feature","id":"46","properties":{"name":"South Dakota"},"geometry":{"type":"Polygon","coordinates":[[[-104.0,45.0],[-97.2,45.0],[-96.5,43.5],[-96.6,43.5],[-97.2,43.0],[-104.0,43.0],[-104.0,45.0]]]}},
+{"type":"Feature","id":"47","properties":{"name":"Tennessee"},"geometry":{"type":"Polygon","coordinates":[[[-90.3,35.0],[-88.1,35.0],[-88.1,34.9],[-86.0,34.9],[-84.3,35.0],[-83.6,36.6],[-81.7,36.6],[-79.6,36.6],[-82.1,36.5],[-89.4,36.5],[-90.3,35.0]]]}},
+{"type":"Feature","id":"48","properties":{"name":"Texas"},"geometry":{"type":"Polygon","coordinates":[[[-106.6,32.0],[-103.0,32.0],[-103.0,36.5],[-100.0,36.5],[-100.0,33.0],[-94.1,33.0],[-94.0,30.0],[-93.8,29.8],[-97.4,26.0],[-99.0,26.5],[-100.0,28.0],[-101.0,29.8],[-104.0,29.6],[-106.0,31.0],[-106.6,31.8],[-106.6,32.0]]]}},
+{"type":"Feature","id":"49","properties":{"name":"Utah"},"geometry":{"type":"Polygon","coordinates":[[[-114.1,42.0],[-111.1,42.0],[-111.1,41.0],[-109.1,41.0],[-109.1,37.0],[-114.1,37.0],[-114.1,42.0]]]}},
+{"type":"Feature","id":"50","properties":{"name":"Vermont"},"geometry":{"type":"Polygon","coordinates":[[[-73.4,45.0],[-72.6,45.0],[-72.6,43.1],[-73.5,43.6],[-73.5,45.0],[-73.4,45.0]]]}},
+{"type":"Feature","id":"51","properties":{"name":"Virginia"},"geometry":{"type":"Polygon","coordinates":[[[-77.5,39.3],[-77.0,38.7],[-76.5,38.5],[-76.0,38.1],[-75.8,38.5],[-75.3,38.0],[-75.9,37.4],[-76.3,36.9],[-77.0,36.9],[-79.6,36.6],[-81.7,36.6],[-83.6,36.6],[-84.3,35.0],[-81.8,35.2],[-80.8,35.6],[-80.8,35.0],[-77.5,39.3]]]}},
+{"type":"Feature","id":"53","properties":{"name":"Washington"},"geometry":{"type":"Polygon","coordinates":[[[-124.7,48.4],[-120.5,49.0],[-117.0,49.0],[-117.0,46.0],[-118.0,46.5],[-119.0,46.0],[-120.5,47.7],[-124.6,47.5],[-124.7,48.4]]]}},
+{"type":"Feature","id":"54","properties":{"name":"West Virginia"},"geometry":{"type":"Polygon","coordinates":[[[-82.6,38.4],[-82.0,37.5],[-81.5,38.2],[-79.5,39.2],[-79.5,39.7],[-80.6,39.7],[-80.5,40.6],[-79.8,41.0],[-76.0,41.0],[-76.5,41.0],[-77.5,39.7],[-79.5,39.7],[-79.5,39.2],[-82.6,38.4]]]}},
+{"type":"Feature","id":"55","properties":{"name":"Wisconsin"},"geometry":{"type":"Polygon","coordinates":[[[-92.9,46.8],[-90.4,46.6],[-87.5,41.8],[-88.1,41.8],[-90.4,46.6],[-92.0,46.7],[-92.3,46.1],[-92.9,46.8]]]}},
+{"type":"Feature","id":"56","properties":{"name":"Wyoming"},"geometry":{"type":"Polygon","coordinates":[[[-111.1,45.0],[-104.0,45.0],[-104.0,41.0],[-111.1,41.0],[-111.1,45.0]]]}}
+]};
+
+const RISK_COLORS  = { extreme:'#e05040', high:'#d4900a', moderate:'#4a82e0', lower:'#1a9980' };
+const STATE_RISK   = {
+  '22':'extreme','12':'extreme','51':'extreme','37':'high','48':'extreme',
+  '28':'high','01':'high','34':'high','45':'high','13':'high','36':'moderate',
+  '25':'moderate','44':'moderate','09':'moderate','24':'moderate','10':'moderate',
+  '06':'lower','53':'lower','15':'lower','41':'lower','17':'lower','39':'lower',
+  '55':'lower','26':'lower','27':'lower','18':'lower'
+};
+const STATE_REGION_MAP = {
+  '22':'louisiana','12':'florida','51':'virginia','37':'northcarolina','34':'newjersey'
+};
+const MAP_REGIONS = {
+  louisiana: {
+    name:'Louisiana', tag:'Gulf Coast', risk:'extreme',
+    headline:'Land is vanishing faster than anywhere in the world.',
+    metricNum:'5,000', metricUnit:'km² of coastline lost since 1932',
+    metricColor:'#e05040', chartType:'area',
+    chartLabel:'Cumulative coastal land loss (km²), Louisiana 1932–2023',
+    chartData:[
+      {x:1932,y:0},{x:1940,y:180},{x:1950,y:420},{x:1960,y:780},
+      {x:1970,y:1240},{x:1980,y:1980},{x:1990,y:2820},{x:2000,y:3580},
+      {x:2010,y:4260},{x:2016,y:4720},{x:2020,y:4940},{x:2023,y:5000}
+    ],
+    body:'Louisiana loses a football field of coastal wetland every 100 minutes — driven by levee systems starving the delta of sediment, oil canals accelerating subsidence, and sea levels rising 9+ mm/yr. The fastest disappearing coastline in the United States.',
+    stats:[['FEMA Risk Score','0.96 — Extreme'],['Relative SLR','9+ mm/yr'],['Wetland loss rate','1 field / 100 min'],['People at risk','2.1M']]
+  },
+  florida: {
+    name:'South Florida', tag:'Southeast Coast', risk:'extreme',
+    headline:'Miami floods on sunny days. No storm required.',
+    metricNum:'+900%', metricUnit:'increase in tidal flood days since 1960',
+    metricColor:'#e05040', chartType:'bar',
+    chartLabel:'Annual tidal flood days, Miami area stations 1970–2023',
+    chartData:[
+      {x:1970,y:2},{x:1975,y:2},{x:1980,y:3},{x:1985,y:3},{x:1990,y:4},
+      {x:1995,y:5},{x:2000,y:6},{x:2005,y:8},{x:2010,y:10},{x:2015,y:15},
+      {x:2020,y:21},{x:2023,y:26}
+    ],
+    body:'Miami-Dade sits mostly below 2 meters elevation with no bedrock barrier. Tidal flooding now inundates streets 26+ days per year — a 900% rise since the 1960s. By 2045, one in eight properties faces chronic inundation.',
+    stats:[['FEMA Risk Score','0.92 — Extreme'],['Flood days (2023)','26 days/yr'],['Avg. elevation','~1.8 m'],['Properties at risk by 2045','1 in 8']]
+  },
+  northcarolina: {
+    name:'Outer Banks', tag:'North Carolina · Atlantic', risk:'high',
+    headline:'These barrier islands are shrinking by the year.',
+    metricNum:'−2.1m', metricUnit:'average annual shoreline loss per year',
+    metricColor:'#d4900a', chartType:'line',
+    chartLabel:'Annual shoreline change (m/yr), Cape Hatteras area 2000–2023',
+    chartData:[
+      {x:2000,y:-1.1},{x:2003,y:-1.4},{x:2005,y:-2.8},{x:2007,y:-1.6},
+      {x:2010,y:-1.9},{x:2012,y:-3.2},{x:2015,y:-2.1},{x:2017,y:-2.4},
+      {x:2019,y:-3.8},{x:2020,y:-2.0},{x:2022,y:-2.3},{x:2023,y:-2.1}
+    ],
+    body:'The Outer Banks are losing ground to rising seas and intensifying storms. Highway 12 — the only road connecting Hatteras Island — is regularly overwashed, closed, and rebuilt. Managed retreat is now formally under discussion for communities that have existed for centuries.',
+    stats:[['FEMA Risk Score','0.85 — High'],['Shoreline loss','1–3 m/yr avg'],['Federal disasters 2000–2023','47'],['Hwy 12 closures (2023)','6 events']]
+  },
+  virginia: {
+    name:'Hampton Roads', tag:'Virginia · Chesapeake Bay', risk:'extreme',
+    headline:'The fastest-sinking coastline in the United States.',
+    metricNum:'9mm', metricUnit:'of relative sea level rise per year — highest in U.S.',
+    metricColor:'#e05040', chartType:'line',
+    chartLabel:'Cumulative relative sea level rise (mm), Norfolk gauge 1930–2023',
+    chartData:[
+      {x:1930,y:0},{x:1940,y:50},{x:1950,y:100},{x:1960,y:150},
+      {x:1970,y:200},{x:1980,y:260},{x:1990,y:330},{x:2000,y:410},
+      {x:2010,y:500},{x:2015,y:560},{x:2020,y:640},{x:2023,y:693}
+    ],
+    body:"Norfolk combines global sea level rise with local land subsidence from historical groundwater extraction — producing 9+ mm/yr of relative rise, more than triple the global average. The world's largest naval base is here. Its piers flood on clear days.",
+    stats:[['FEMA Risk Score','0.93 — Extreme'],['Relative SLR','~9 mm/yr'],['Flood days (Norfolk, 2023)','14+ days'],['Infrastructure at risk','$13B+ by 2050']]
+  },
+  newjersey: {
+    name:'New Jersey Coast', tag:'Mid-Atlantic', risk:'high',
+    headline:'Sandy changed this coast. The next storm will too.',
+    metricNum:'$36B', metricUnit:'in damage from Hurricane Sandy in NJ alone',
+    metricColor:'#d4900a', chartType:'bar',
+    chartLabel:'Annual coastal flood damage, NJ ($B) 2000–2023',
+    chartData:[
+      {x:2000,y:0.2},{x:2003,y:0.3},{x:2005,y:0.4},{x:2007,y:0.3},
+      {x:2009,y:0.5},{x:2011,y:0.4},{x:2012,y:36.1},{x:2014,y:0.5},
+      {x:2016,y:0.4},{x:2018,y:0.6},{x:2020,y:0.5},{x:2023,y:0.7}
+    ],
+    body:'Hurricane Sandy exposed the full vulnerability of the mid-Atlantic coast. A decade of rebuilding — 700+ buyouts, dune restoration, seawall upgrades — has not changed the underlying physics. Sea level rise is narrowing the margin of safety with every year.',
+    stats:[['FEMA Risk Score','0.72 — High'],['Sandy damage (NJ)','$36 billion'],['Buyouts completed','700+ homes'],['Properties in flood zone','350,000+']]
+  }
+};
+
+let mapRegionTip = null;
+
+function buildUSMap() {
+  const el = document.getElementById('us-map');
+  if (!el) return;
+
+  if (!mapRegionTip) {
+    mapRegionTip = document.createElement('div');
+    mapRegionTip.className = 'map-region-tip';
+    document.body.appendChild(mapRegionTip);
+  }
+
+  function positionTip(ev) {
+    const vw = window.innerWidth;
+    let left = ev.clientX + 18;
+    if (left + 260 > vw) left = ev.clientX - 268;
+    mapRegionTip.style.left = left + 'px';
+    mapRegionTip.style.top  = (ev.clientY - 12) + 'px';
+  }
+
+  const GCOLS = {
+    extreme:'#e05040', high:'#d4900a', moderate:'#4a82e0', lower:'#22c4a0'
+  };
+
+  function renderMap(states, mesh) {
+    el.innerHTML = '';
+    const W = el.clientWidth || 820;
+    const H = Math.round(W * 0.60);
+
+    const svg = d3.select(el).append('svg')
+      .attr('width', W).attr('height', H)
+      .attr('viewBox', `0 0 ${W} ${H}`)
+      .style('display','block')
+      .style('border-radius','10px')
+      .style('overflow','hidden');
+
+    const defs = svg.append('defs');
+
+    /* Ocean bg */
+    const bg = defs.append('linearGradient').attr('id','mBg').attr('x1','0').attr('y1','0').attr('x2','0.15').attr('y2','1');
+    bg.append('stop').attr('offset','0%').attr('stop-color','#040a18');
+    bg.append('stop').attr('offset','100%').attr('stop-color','#020406');
+    svg.append('rect').attr('width',W).attr('height',H).attr('fill','url(#mBg)');
+
+    /* Radial center glow */
+    const rg = defs.append('radialGradient').attr('id','mRad').attr('cx','52%').attr('cy','48%').attr('r','52%');
+    rg.append('stop').attr('offset','0%').attr('stop-color','#0d2656').attr('stop-opacity','0.22');
+    rg.append('stop').attr('offset','100%').attr('stop-color','#0d2656').attr('stop-opacity','0');
+    svg.append('rect').attr('width',W).attr('height',H).attr('fill','url(#mRad)');
+
+    const projection = d3.geoAlbersUsa().scale(W * 1.26).translate([W * 0.5, H * 0.5]);
+    const path = d3.geoPath().projection(projection);
+
+    /* State fills */
+    const statePaths = svg.append('g')
+      .selectAll('path')
+      .data(states.features)
+      .join('path')
+        .attr('d', path)
+        .attr('fill', d => {
+          const risk = STATE_RISK[d.id];
+          if (!risk) return 'rgba(100,130,180,0.04)';
+          const col = d3.color(GCOLS[risk]);
+          return col.copy({ opacity: STATE_REGION_MAP[d.id] ? 0.18 : 0.06 }).toString();
+        })
+        .attr('stroke', d => {
+          const risk = STATE_RISK[d.id];
+          if (STATE_REGION_MAP[d.id]) return d3.color(GCOLS[risk]).brighter(0.4).toString();
+          return 'rgba(74,130,224,0.15)';
+        })
+        .attr('stroke-width', d => STATE_REGION_MAP[d.id] ? 1.0 : 0.3)
+        .attr('class', d => STATE_REGION_MAP[d.id] ? 'map-state map-state-click' : 'map-state')
+        .style('cursor', d => STATE_REGION_MAP[d.id] ? 'pointer' : 'default')
+        .attr('opacity', 0)
+        .on('mouseover', function(ev, d) {
+          const rid = STATE_REGION_MAP[d.id];
+          if (!rid) return;
+          const risk = STATE_RISK[d.id];
+          const reg  = MAP_REGIONS[rid];
+          d3.select(this).transition().duration(120)
+            .attr('fill', d3.color(GCOLS[risk]).copy({opacity:0.40}).toString())
+            .attr('stroke-width', 1.8);
+          mapRegionTip.innerHTML = `<strong>${reg.name}</strong>${reg.tag}<br><span style="color:${GCOLS[risk]};font-size:0.6rem;letter-spacing:0.12em">Click to explore →</span>`;
+          mapRegionTip.classList.add('show');
+          positionTip(ev);
+        })
+        .on('mousemove', positionTip)
+        .on('mouseout', function(ev, d) {
+          const risk = STATE_RISK[d.id];
+          const rid  = STATE_REGION_MAP[d.id];
+          d3.select(this).transition().duration(200)
+            .attr('fill', (() => {
+              if (!risk) return 'rgba(100,130,180,0.04)';
+              const col = d3.color(GCOLS[risk]);
+              return col.copy({ opacity: rid === currentRegion ? 0.35 : (STATE_REGION_MAP[d.id] ? 0.18 : 0.06) }).toString();
+            })())
+            .attr('stroke-width', STATE_REGION_MAP[d.id] ? 1.0 : 0.3);
+          mapRegionTip.classList.remove('show');
+        })
+        .on('click', (ev, d) => { const rid = STATE_REGION_MAP[d.id]; if (rid) openRegionPanel(rid); });
+
+    /* Staggered reveal */
+    statePaths.transition().duration(500).delay((_,i) => 20 + i*12).ease(d3.easeCubicOut).attr('opacity', 1);
+
+    /* State mesh borders */
+    if (mesh) {
+      svg.append('path')
+        .datum(mesh)
+        .attr('fill','none')
+        .attr('stroke','rgba(74,130,224,0.12)')
+        .attr('stroke-width', 0.4)
+        .attr('d', path)
+        .attr('opacity',0)
+        .transition().delay(400).duration(700).attr('opacity',1);
+    }
+
+    /* Glow strokes on clickable states */
+    states.features.filter(d => STATE_REGION_MAP[d.id]).forEach(d => {
+      const col = GCOLS[STATE_RISK[d.id]];
+      svg.append('path').datum(d)
+        .attr('d', path)
+        .attr('fill','none')
+        .attr('stroke', col)
+        .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0)
+        .attr('filter', `drop-shadow(0 0 5px ${col})`)
+        .transition().delay(600).duration(800).attr('stroke-opacity', 0.5);
+    });
+
+    /* Labels */
+    const labelG = svg.append('g').attr('opacity', 0);
+    labelG.transition().delay(900).duration(600).attr('opacity', 1);
+
+    states.features.forEach(d => {
+      const rid = STATE_REGION_MAP[d.id];
+      if (!rid) return;
+      const reg = MAP_REGIONS[rid];
+      const col = GCOLS[STATE_RISK[d.id]];
+      const ctr = path.centroid(d);
+      if (!ctr || isNaN(ctr[0]) || isNaN(ctr[1])) return;
+
+      const g = labelG.append('g').style('cursor','pointer')
+        .on('click', () => openRegionPanel(rid))
+        .on('mouseover', ev => {
+          mapRegionTip.innerHTML = `<strong>${reg.name}</strong>${reg.tag}<br><span style="color:${col};font-size:0.6rem">Click to explore →</span>`;
+          mapRegionTip.classList.add('show'); positionTip(ev);
+        })
+        .on('mousemove', positionTip)
+        .on('mouseout', () => mapRegionTip.classList.remove('show'));
+
+      /* Pulse ring */
+      g.append('circle').attr('cx',ctr[0]).attr('cy',ctr[1]).attr('r',12)
+        .attr('fill',col).attr('opacity',0.15).attr('class','map-pulse-ring');
+      /* Glow ring */
+      g.append('circle').attr('cx',ctr[0]).attr('cy',ctr[1]).attr('r',6.5)
+        .attr('fill',col).attr('opacity',0.25).attr('filter',`drop-shadow(0 0 5px ${col})`);
+      /* Core */
+      g.append('circle').attr('cx',ctr[0]).attr('cy',ctr[1]).attr('r',4)
+        .attr('fill',col).attr('stroke','#020406').attr('stroke-width',1.5)
+        .attr('filter',`drop-shadow(0 0 8px ${col})`);
+
+      /* Label pill */
+      const lbl  = reg.name;
+      const lblW = lbl.length * 7.0 + 22;
+      const lx   = ctr[0] - lblW/2;
+      const ly   = ctr[1] - 29;
+      g.append('rect').attr('x',lx).attr('y',ly).attr('width',lblW).attr('height',20)
+        .attr('rx',3).attr('fill','rgba(4,8,18,0.85)')
+        .attr('stroke',col).attr('stroke-width',0.6).attr('stroke-opacity',0.6);
+      g.append('text').attr('x',ctr[0]).attr('y',ly+13.5)
+        .attr('text-anchor','middle').attr('fill','#f0ece4')
+        .attr('font-family','Inter,sans-serif').attr('font-size',10.5)
+        .attr('font-weight','600').attr('letter-spacing','0.04em').text(lbl);
+      g.append('line').attr('x1',ctr[0]).attr('y1',ly+20)
+        .attr('x2',ctr[0]).attr('y2',ctr[1]-6)
+        .attr('stroke',col).attr('stroke-width',0.6).attr('stroke-opacity',0.4);
+    });
+
+    /* Attribution */
+    svg.append('text').attr('x',W-14).attr('y',H-9).attr('text-anchor','end')
+      .attr('fill','rgba(100,120,150,0.25)').attr('font-family','DM Mono,monospace')
+      .attr('font-size',8.5).attr('letter-spacing','0.1em').text('FEMA NRI 2023 · CDC SVI 2022');
+
+    /* Store path+projection for resize */
+    el._mapProjection = projection;
+    el._mapPath = path;
+  }
+
+  function draw() {
+    /* Try CDN TopoJSON first (works with Live Server / any web server) */
+    d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+      .then(us => {
+        const states = topojson.feature(us, us.objects.states);
+        const mesh   = topojson.mesh(us, us.objects.states, (a,b) => a !== b);
+        renderMap(states, mesh);
+      })
+      .catch(() => {
+        /* Fallback: use inline GeoJSON — no mesh borders */
+        renderMap(US_STATES_GEO, null);
+      });
+  }
+
+  draw();
+  window.addEventListener('resize', debounce(draw, 220));
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   REGION PANEL — populates side panel with data + D3 chart
+══════════════════════════════════════════════════════════ */
+let currentRegion = null;
+
+function openRegionPanel(regionId) {
+  const reg = MAP_REGIONS[regionId];
+  if (!reg || regionId === currentRegion) return;
+  currentRegion = regionId;
+
+  /* Set metric glow color via CSS variable */
+  const metricEl = document.getElementById('mp-metric-num');
+  if (metricEl) {
+    metricEl.style.color = reg.metricColor;
+    metricEl.closest('.mp-metric').style.setProperty('--mp-col', reg.metricColor);
+  }
+
+  /* Populate text fields */
+  document.getElementById('mp-tag').textContent        = reg.tag.toUpperCase();
+  document.getElementById('mp-headline').textContent   = reg.headline;
+  document.getElementById('mp-metric-num').textContent = reg.metricNum;
+  document.getElementById('mp-metric-num').style.color = reg.metricColor;
+  document.getElementById('mp-metric-label').textContent = reg.metricUnit;
+  document.getElementById('mp-chart-title').textContent  = reg.chartLabel;
+  document.getElementById('mp-body').textContent = reg.body;
+
+  /* Stats */
+  document.getElementById('mp-stats-row').innerHTML = reg.stats
+    .map(([k,v]) => `<div class="mp-stat"><span class="mp-stat-key">${k}</span><span class="mp-stat-val">${v}</span></div>`)
+    .join('');
+
+  /* Render mini D3 chart */
+  renderMiniChart(reg);
+
+  /* Show content, hide default */
+  document.getElementById('mp-default').style.display = 'none';
+  const content = document.getElementById('mp-content');
+  content.style.display = 'flex';
+  content.classList.remove('entering');
+  void content.offsetWidth; /* force reflow */
+  content.classList.add('entering');
+
+  /* Highlight selected state on map */
+  d3.selectAll('.map-state').each(function(d) {
+    const rid = STATE_REGION_MAP[d && d.id];
+    const risk = STATE_RISK[d && d.id];
+    if (rid === regionId) {
+      d3.select(this)
+        .attr('fill', d3.color(RISK_COLORS[risk]).copy({ opacity: 0.55 }).toString())
+        .attr('stroke-width', 2.4);
+    } else {
+      d3.select(this)
+        .attr('fill', risk ? d3.color(RISK_COLORS[risk]).copy({ opacity: 0.18 }).toString() : 'rgba(255,255,255,0.03)')
+        .attr('stroke-width', STATE_REGION_MAP[d && d.id] ? 1.2 : 0.4);
+    }
+  });
+}
+
+function renderMiniChart(reg) {
+  const el = document.getElementById('mp-chart');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const W = el.clientWidth || 336;
+  const H = 130;
+  const M = { t: 12, r: 8, b: 28, l: 44 };
+  const w = W - M.l - M.r, h = H - M.t - M.b;
+
+  const data = reg.chartData;
+  const svg = d3.select(el).append('svg')
+    .attr('width', W).attr('height', H)
+    .style('display', 'block').style('overflow', 'visible');
+
+  /* Transparent background */
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', 'transparent');
+
+  const g = svg.append('g').attr('transform', `translate(${M.l},${M.t})`);
+
+  const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).range([0, w]);
+  const yMin = d3.min(data, d => d.y);
+  const yMax = d3.max(data, d => d.y);
+  const y = d3.scaleLinear().domain([Math.min(0, yMin) * 1.08, yMax * 1.12]).range([h, 0]);
+
+  const col = reg.metricColor;
+
+  /* Subtle grid */
+  y.ticks(3).forEach(v => {
+    if (y(v) < 0 || y(v) > h) return;
+    g.append('line').attr('x1', 0).attr('x2', w).attr('y1', y(v)).attr('y2', y(v))
+      .attr('stroke', 'rgba(255,255,255,0.06)').attr('stroke-width', 1);
+  });
+
+  /* Zero line if applicable */
+  if (yMin < 0) {
+    g.append('line').attr('x1',0).attr('x2',w).attr('y1',y(0)).attr('y2',y(0))
+      .attr('stroke','rgba(255,255,255,0.15)').attr('stroke-width',0.8).attr('stroke-dasharray','4 3');
+  }
+
+  /* Axes — minimal */
+  g.append('g').attr('transform', `translate(0,${h})`).call(
+    d3.axisBottom(x).ticks(4).tickFormat(d3.format('d'))
+  ).call(ax => {
+    ax.select('.domain').remove();
+    ax.selectAll('.tick line').remove();
+    ax.selectAll('.tick text')
+      .attr('fill', C.dim).attr('font-family','DM Mono,monospace').attr('font-size', 10);
+  });
+
+  g.append('g').call(
+    d3.axisLeft(y).ticks(3).tickFormat(d => Math.abs(d) >= 1000 ? d3.format('.0s')(d) : d)
+  ).call(ax => {
+    ax.select('.domain').remove();
+    ax.selectAll('.tick line').remove();
+    ax.selectAll('.tick text')
+      .attr('fill', C.dim).attr('font-family','DM Mono,monospace').attr('font-size', 10);
+  });
+
+  if (reg.chartType === 'area' || reg.chartType === 'line') {
+    /* Gradient fill */
+    const gId = 'mc-g-' + reg.name.replace(/\s/g,'');
+    const defs = svg.append('defs');
+    const grad = defs.append('linearGradient').attr('id', gId)
+      .attr('gradientUnits','userSpaceOnUse').attr('x1',0).attr('y1',0).attr('x2',0).attr('y2',h);
+    grad.append('stop').attr('offset','0%').attr('stop-color',col).attr('stop-opacity',0.35);
+    grad.append('stop').attr('offset','100%').attr('stop-color',col).attr('stop-opacity',0.02);
+
+    if (reg.chartType === 'area') {
+      const aFn = d3.area().x(d=>x(d.x)).y0(h).y1(d=>y(d.y)).curve(d3.curveCatmullRom.alpha(0.5));
+      const aPath = g.append('path').datum(data).attr('d',aFn).attr('fill',`url(#${gId})`).attr('opacity',0);
+      aPath.transition().duration(800).attr('opacity',1);
+    }
+
+    const lFn = d3.line().x(d=>x(d.x)).y(d=>y(d.y)).curve(d3.curveCatmullRom.alpha(0.5));
+    const lPath = g.append('path').datum(data).attr('d',lFn)
+      .attr('fill','none').attr('stroke',col).attr('stroke-width',2)
+      .attr('stroke-linecap','round');
+    const len = lPath.node().getTotalLength();
+    lPath.attr('stroke-dasharray',`${len} ${len}`).attr('stroke-dashoffset',len)
+      .transition().duration(1000).ease(d3.easeCubicOut).attr('stroke-dashoffset',0);
+
+  } else if (reg.chartType === 'bar') {
+    const bw = Math.max(2, (w / data.length) - 2);
+    data.forEach((d, i) => {
+      const bh = Math.abs(y(d.y) - y(0));
+      const by = d.y >= 0 ? y(d.y) : y(0);
+      g.append('rect')
+        .attr('x', x(d.x) - bw/2).attr('y', by).attr('width', bw).attr('height', 0)
+        .attr('fill', col).attr('opacity', 0.75).attr('rx', 1.5)
+        .transition().duration(600).delay(i * 40).attr('height', bh);
+    });
+  }
+
+  /* Last-point highlight dot */
+  const last = data[data.length - 1];
+  g.append('circle').attr('cx',x(last.x)).attr('cy',y(last.y)).attr('r',4)
+    .attr('fill',col).attr('stroke','#080b14').attr('stroke-width',2)
+    .attr('opacity',0).transition().delay(900).duration(300).attr('opacity',1);
+}
+/* ── Add ocean bg + horizon glow to existing charts on init ── */
+function upgradeChartAtmosphere() {
+  document.querySelectorAll('.chart-host svg').forEach(svgEl => {
+    const W = +svgEl.getAttribute('width') || 500;
+    const H = +svgEl.getAttribute('height') || 400;
+    const svg = d3.select(svgEl);
+    const existingRect = svg.select('rect:first-child');
+    if (!existingRect.empty()) {
+      const defs = svg.select('defs').empty() ? svg.insert('defs', ':first-child') : svg.select('defs');
+      const gId = 'ocn-' + Math.random().toString(36).slice(2, 7);
+      const og = defs.append('linearGradient').attr('id', gId)
+        .attr('gradientUnits', 'userSpaceOnUse').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', H);
+      og.append('stop').attr('offset', '0%').attr('stop-color', '#0d1420').attr('stop-opacity', 1);
+      og.append('stop').attr('offset', '100%').attr('stop-color', '#060c16').attr('stop-opacity', 1);
+      existingRect.attr('fill', `url(#${gId})`);
+    }
+  });
+}
+
 function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
 }
 
 /* ══════════════════════════════════════════════════════════
-   LIGHTBOX — click-to-enlarge for hazard chart images
+   LIGHTBOX
 ══════════════════════════════════════════════════════════ */
 function openLightbox(src, caption) {
   const lb  = document.getElementById('lightbox');
@@ -1420,14 +2009,5 @@ function closeLightbox() {
   if (!lb) return;
   lb.classList.remove('open');
   document.body.style.overflow = '';
-  // Reset src after transition
-  setTimeout(() => {
-    const img = document.getElementById('lightbox-img');
-    if (img) img.src = '';
-  }, 320);
+  setTimeout(() => { const img = document.getElementById('lightbox-img'); if (img) img.src = ''; }, 320);
 }
-
-// Close on Escape key
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeLightbox();
-});
